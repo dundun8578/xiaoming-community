@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>xiaoming-community</artifactId>
+        <groupId>com.xiaoming</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>xiaoming-module-statistics</artifactId>
+    <name>xiaoming-module-statistics</name>
+    <description>数据统计与分析模块</description>
+
+    <dependencies>
+        <!-- 公共模块 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 用户模块 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-user</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 笔记模块 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-note</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 互动模块 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-interaction</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 社交模块 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-social</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 分类模块 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-category</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+    </dependencies>
+</project>
