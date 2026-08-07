@@ -72,6 +72,11 @@
             <artifactId>xiaoming-module-level</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-category</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot -->
         <dependency>

@@ -150,6 +150,7 @@
         <module>xiaoming-module-home</module>
         <module>xiaoming-module-message</module>
         <module>xiaoming-module-level</module>
+        <module>xiaoming-module-category</module>
         <module>xiaoming-web</module>
     </modules>
 
