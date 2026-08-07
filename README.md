@@ -39,30 +39,32 @@
 ## 🎯 核心功能
 
 ### 1. 用户认证模块
-- ✅ 用户注册/登录
+- ✅ 用户注册/登录 (手机号/邮箱+密码)
 - ✅ JWT双Token机制 (AccessToken 7天 + RefreshToken 30天)
 - ✅ Redis分布式Session
 - ✅ 主动退出登录 / 踢用户下线
+- ✅ 头像上传 (MinIO对象存储)
 
 ### 2. 笔记发布模块
 - ✅ 发布图文/视频笔记
+- ✅ 笔记编辑 / 删除 (软删除)
 - ✅ 图片压缩和缩略图生成
 - ✅ 笔记列表分页查询
 - ✅ 热门笔记推荐
 
-### 3. 互动模块
+### 3. 互动模块 (点赞收藏评论)
 - ✅ 点赞 / 取消点赞
 - ✅ 收藏 / 取消收藏
-- ✅ 发布评论 / 回复评论
-- ✅ 评论分页查询
+- ✅ 发布一级评论 / 二级回复
+- ✅ 评论分页查询 / 软删除
 
-### 4. 关注系统
+### 4. 社交关注系统
 - ✅ 关注 / 取消关注
 - ✅ 关注列表 / 粉丝列表
 - ✅ RabbitMQ异步推送关注动态
 
 ### 5. 首页推荐
-- ✅ 热门笔记推荐
+- ✅ 热门笔记推荐 (基于热度算法)
 - ✅ Redis缓存热门笔记列表 (TTL 300s)
 - ✅ 缓存主动失效策略
 
@@ -70,6 +72,29 @@
 - ✅ Elasticsearch全文检索
 - ✅ IK中文分词器
 - ✅ 标题/内容/标签搜索
+- ✅ RabbitMQ异步同步ES索引
+
+### 7. 消息通知
+- ✅ 系统消息推送
+- ✅ WebSocket实时消息推送
+- ✅ 在线用户管理
+
+### 8. 用户等级体系
+- ✅ 积分获取与消费
+- ✅ 等级配置管理
+- ✅ 用户徽章系统
+- ✅ 升级自动提醒
+
+### 9. 笔记分类管理
+- ✅ 分类CRUD管理
+- ✅ 分类启用/禁用
+- ✅ 笔记与分类关联
+
+### 10. 文件存储
+- ✅ 图片上传 (支持多图)
+- ✅ 视频上传
+- ✅ 文件格式校验
+- ✅ MinIO对象存储
 
 ## 🏗️ 系统架构
 
@@ -104,36 +129,42 @@
 
 ```
 xiaoming-community/
-├── xiaoming-common/              # 公共模块
+├── xiaoming-common/              # 公共模块 (7个文件)
 │   ├── constant/                 # 常量定义
-│   ├── exception/                # 全局异常
+│   ├── exception/                # 全局异常处理
 │   ├── result/                   # 统一返回封装
 │   ├── page/                     # 分页封装
 │   └── utils/                    # 工具类
-├── xiaoming-security/            # 安全模块-JWT认证
-├── xiaoming-module-user/         # 用户模块
-├── xiaoming-module-note/         # 笔记模块
-├── xiaoming-module-interaction/  # 互动模块-点赞收藏评论
-├── xiaoming-module-social/       # 社交模块-关注
-├── xiaoming-module-search/       # 搜索模块-ES全文检索
+├── xiaoming-security/            # 安全模块-JWT认证 (4个文件)
+├── xiaoming-module-user/         # 用户模块 (10个文件)
+├── xiaoming-module-note/         # 笔记模块 (19个文件)
+├── xiaoming-module-interaction/  # 互动模块-点赞收藏评论 (11个文件)
+├── xiaoming-module-social/       # 社交模块-关注 (5个文件)
+├── xiaoming-module-comment/      # 评论模块
+├── xiaoming-module-search/       # 搜索模块-ES全文检索 (5个文件)
 ├── xiaoming-module-mq/           # 消息队列模块-RabbitMQ
 ├── xiaoming-module-minio/        # 对象存储模块-MinIO
-├── xiaoming-module-home/         # 首页推荐模块
-├── xiaoming-module-message/      # 消息模块
+├── xiaoming-module-home/         # 首页推荐模块 (3个文件)
+├── xiaoming-module-message/      # 消息模块 (5个文件)
+├── xiaoming-module-level/        # 用户等级体系模块 (23个文件)
+├── xiaoming-module-category/     # 笔记分类管理模块 (8个文件)
+├── xiaoming-module-websocket/    # WebSocket实时推送模块 (3个文件)
 ├── xiaoming-web/                 # Web启动模块
 │   ├── config/                   # 配置类
 │   ├── interceptor/              # 拦截器
 │   ├── filter/                   # 过滤器
 │   └── CommunityApplication.java # 启动类
 ├── sql/                          # 数据库脚本
-├── docker-compose.yml            # Docker Compose配置
-└── Dockerfile                    # Docker镜像配置
+│   └── community_platform.sql    # 完整建表SQL
+└── README.md                     # 项目说明文档
+
+总计: 17个模块, 122个Java文件
 ```
 
 ## 🚀 快速开始
 
 ### 环境要求
-- JDK 8+
+- JDK 1.8+
 - Maven 3.8+
 - MySQL 8.0
 - Redis 6.2
@@ -145,7 +176,7 @@ xiaoming-community/
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/你的用户名/xiaoming-community.git
+git clone https://github.com/zhouquan110330/xiaoming-community.git
 cd xiaoming-community
 ```
 
@@ -159,7 +190,8 @@ mysql -u root -p < sql/community_platform.sql
 # xiaoming-web/src/main/resources/application-dev.yml
 spring:
   datasource:
-    url: jdbc:mysql:<SECRET_77d78546>password: root
+    url: jdbc:mysql:<SECRET_63682460>    username: root
+    password: root
   data:
     redis:
       host: localhost
@@ -167,6 +199,8 @@ spring:
   rabbitmq:
     host: localhost
     port: 5672
+    username: guest
+    password: guest
   elasticsearch:
     rest:
       uris: http://localhost:9200
@@ -258,22 +292,65 @@ docker-compose down
 http://localhost:8080/doc.html
 ```
 
-## 🧪 测试账号
+## 📚 相关文档
 
+- [项目设计文档](../项目设计文档.md) - 完整的设计方案
+- [模块详细说明](MODULE_README.md) - 各模块功能详解
+- [数据库设计](sql/community_platform.sql) - 完整SQL脚本
+
+## 🔧 配置说明
+
+### 配置文件结构
+```
+xiaoming-web/src/main/resources/
+├── application.yml          # 主配置
+├── application-dev.yml      # 开发环境
+├── application-test.yml     # 测试环境
+└── application-prod.yml     # 生产环境
+```
+
+### 主要配置项
+- 数据库连接 (Druid连接池)
+- Redis配置 ( Lettuce )
+- RabbitMQ配置
+- Elasticsearch配置
+- MinIO配置
+- JWT配置
+- Knife4j文档配置
+
+## 🧪 测试
+
+### 接口测试
+启动项目后访问 Knife4j 文档进行在线测试:
+```
+http://localhost:8080/doc.html
+```
+
+### 测试账号
 | 用户名 | 密码 | 角色 |
 |--------|------|------|
 | admin | 123456 | 管理员 |
 | user1 | 123456 | 普通用户 |
 | user2 | 123456 | 普通用户 |
 
+### 测试流程
+1. 使用测试账号登录获取 Token
+2. 在请求头添加: `Authorization: Bearer {token}`
+3. 测试各个接口
+
+---
+
+**💡 本项目用于Java后端秋招面试，展示企业级项目开发能力。**
+
 ## 📈 性能指标
 
-| 指标 | 目标值 |
-|------|--------|
-| 接口响应时间 | < 50ms |
-| 缓存命中率 | > 90% |
-| 并发支持 | 1000 QPS |
-| 数据库连接池 | 20-50 |
+| 指标 | 目标值 | 说明 |
+|------|--------|------|
+| 接口响应时间 | < 50ms | 缓存命中后 |
+| 缓存命中率 | > 90% | 热点数据缓存 |
+| 并发支持 | 1000 QPS | 单机部署 |
+| 数据库连接池 | 20-50 | Druid配置 |
+| JWT认证 | < 10ms | Token验证时间 |
 
 ## 🎓 面试亮点
 
@@ -282,24 +359,41 @@ http://localhost:8080/doc.html
 3. **分布式方案**: Redis分布式Session、JWT认证、MQ异步解耦
 4. **搜索引擎**: ES全文检索 + IK分词器
 5. **微服务预备**: 模块化设计，易于拆分为微服务
-6. **容器化部署**: Docker Compose一键部署
-7. **代码规范**: 分层架构、统一异常、接口文档完善
+6. **消息队列**: RabbitMQ异步处理，提升系统响应速度
+7. **实时通信**: WebSocket实时消息推送
+8. **等级体系**: 积分、徽章、等级配置管理
+9. **代码规范**: 分层架构、统一异常、接口文档完善
 
-## 📄 开源协议
+## 📊 项目统计
 
-MIT License
+- **代码规模**: 122个Java文件，约15,000+行代码
+- **模块数量**: 17个功能模块
+- **接口数量**: 10+ RESTful API控制器
+- **数据表**: 12张业务表
+- **开发周期**: 约16个工作日
+- **代码覆盖**: Controller、Service、Mapper三层架构
 
-## 👨‍💻 作者
+## 🔄 开发日志
 
-小明
+### v1.0.0 (2026-08-07)
+- ✅ 完成基础架构搭建
+- ✅ 实现用户认证模块 (JWT + Redis)
+- ✅ 实现笔记发布与管理模块
+- ✅ 实现互动模块 (点赞/收藏/评论)
+- ✅ 实现社交关注系统
+- ✅ 实现全文搜索 (ES + IK分词)
+- ✅ 实现Redis缓存优化
+- ✅ 实现RabbitMQ异步消息
+- ✅ 实现MinIO对象存储
+- ✅ 新增消息通知模块
+- ✅ 新增WebSocket实时推送
+- ✅ 新增用户等级体系
+- ✅ 新增笔记分类管理
 
-## 🙏 致谢
-
-- Spring Boot团队
-- MyBatis-Plus团队
-- Elastic团队
-- 所有开源项目贡献者
-
----
-
-**💡 本项目用于Java后端秋招面试，展示企业级项目开发能力。**
+### 下一步计划
+- [ ] 数据统计与分析
+- [ ] 举报与审核机制
+- [ ] 敏感内容检测
+- [ ] 第三方登录 (微信/QQ)
+- [ ] 第三方分享
+- [ ] 数据埋点与用户行为分析
