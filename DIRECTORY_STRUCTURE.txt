@@ -1,0 +1,168 @@
+小明社区共享服务 - 目录结构总览
+=====================================
+
+xiaoming-community/
+├── xiaoming-common/                         # 公共模块
+│   └── src/main/java/com/xiaoming/common/
+│       ├── constant/                        # 常量类
+│       │   ├── ResultCode.java
+│       │   └── ...
+│       ├── exception/                       # 异常处理
+│       │   ├── BusinessException.java
+│       │   ├── GlobalExceptionEnum.java
+│       │   └── GlobalExceptionHandler.java
+│       ├── page/                            # 分页
+│       │   ├── PageRequest.java
+│       │   └── PageResult.java
+│       ├── result/                          # 响应结果
+│       │   └── Result.java
+│       └── utils/                           # 工具类 ⭐新增
+│           ├── StringUtils.java
+│           ├── CollectionUtils.java
+│           └── MD5Utils.java
+│
+├── xiaoming-module-category/               # 分类模块
+│   └── src/main/java/com/xiaoming/module/category/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象
+│       ├── vo/                              # 视图对象
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-comment/                # 评论模块
+│   └── src/main/java/com/xiaoming/module/comment/
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象 ⭐新增
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-home/                   # 首页模块
+│   └── src/main/java/com/xiaoming/module/home/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── cache/                           # 缓存相关
+│       └── config/                          # 配置类
+│
+├── xiaoming-module-interaction/            # 互动模块（点赞、收藏）
+│   └── src/main/java/com/xiaoming/module/interaction/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象 ⭐新增
+│       ├── vo/                              # 视图对象
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-level/                  # 等级模块
+│   └── src/main/java/com/xiaoming/module/level/
+│       ├── config/                          # 配置类
+│       ├── constant/                        # 常量类
+│       ├── consumer/                        # 消息消费者
+│       ├── controller/                      # 控制层
+│       ├── dto/                             # 数据传输对象
+│       ├── entity/                          # 实体类
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       └── vo/                              # 视图对象
+│
+├── xiaoming-module-message/                # 消息模块
+│   └── src/main/java/com/xiaoming/module/message/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象 ⭐新增
+│       ├── vo/                              # 视图对象
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-minio/                  # MinIO文件存储模块
+│   └── src/main/java/com/xiaoming/module/minio/
+│       ├── config/                          # 配置类
+│       ├── controller/                      # 控制层
+│       └── service/                         # 服务接口
+│           └── impl/                        # 服务实现
+│
+├── xiaoming-module-mq/                     # 消息队列模块
+│   └── src/main/java/com/xiaoming/module/mq/
+│       ├── config/                          # 配置类
+│       ├── constant/                        # 常量类
+│       ├── consumer/                        # 消息消费者
+│       └── producer/                        # 消息生产者
+│
+├── xiaoming-module-note/                   # 笔记模块
+│   └── src/main/java/com/xiaoming/module/note/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象
+│       ├── vo/                              # 视图对象
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-search/                 # 搜索模块
+│   └── src/main/java/com/xiaoming/module/search/
+│       ├── config/                          # 配置类
+│       ├── controller/                      # 控制层
+│       ├── document/                        # ES文档
+│       ├── repository/                      # ES仓库
+│       └── service/                         # 服务接口
+│           └── impl/                        # 服务实现
+│
+├── xiaoming-module-social/                 # 社交模块
+│   └── src/main/java/com/xiaoming/module/social/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象 ⭐新增
+│       ├── vo/                              # 视图对象
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-statistics/             # 统计模块
+│   └── src/main/java/com/xiaoming/module/statistics/
+│       ├── config/                          # 配置类
+│       ├── controller/                      # 控制层
+│       ├── dto/                             # 数据传输对象
+│       ├── entity/                          # 实体类
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       └── vo/                              # 视图对象
+│
+├── xiaoming-module-user/                   # 用户模块
+│   └── src/main/java/com/xiaoming/module/user/
+│       ├── controller/                      # 控制层
+│       ├── service/                         # 服务接口
+│       │   └── impl/                        # 服务实现
+│       ├── mapper/                          # 数据访问层
+│       ├── entity/                          # 实体类
+│       ├── dto/                             # 数据传输对象
+│       ├── vo/                              # 视图对象
+│       ├── security/                        # 安全相关
+│       └── config/                          # 配置类 ⭐新增
+│
+├── xiaoming-module-websocket/              # WebSocket模块
+│   └── src/main/java/com/xiaoming/module/websocket/
+│       ├── config/                          # 配置类
+│       └── handler/                         # 消息处理器
+│
+└── xiaoming-security/                      # 安全模块
+    └── src/main/java/com/xiaoming/security/
+        ├── config/                          # 配置类
+        ├── jwt/                             # JWT相关
+        └── security/                        # 安全配置
+```
+
+规范说明：
+⭐ = 本次规范化新增或优化的目录
