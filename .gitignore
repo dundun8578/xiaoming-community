@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Maven
 .mvn/
 target/
@@ -36,3 +37,29 @@ docker-compose.override.yml
 # 日志
 logs/
 *.log
+=======
+# Dependencies
+node_modules/
+target/
+.idea/
+
+# Build output
+dist/
+.vite/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+*.iml
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+>>>>>>> 576117a (init: 小明社区共享服务平台初始代码)
