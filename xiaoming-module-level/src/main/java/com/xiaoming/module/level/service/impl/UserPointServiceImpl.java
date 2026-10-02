@@ -14,7 +14,6 @@ import com.xiaoming.module.level.service.UserPointService;
 import com.xiaoming.module.level.vo.UserLevelVO;
 import com.xiaoming.module.level.vo.PointRecordVO;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xiaoming.module.level.mapper.UserPointMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

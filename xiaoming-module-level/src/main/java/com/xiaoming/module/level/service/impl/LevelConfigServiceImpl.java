@@ -11,6 +11,7 @@ import com.xiaoming.module.level.service.LevelConfigService;
 import com.xiaoming.module.level.service.UserPointService;
 import com.xiaoming.module.level.vo.UserLevelVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +25,11 @@ public class LevelConfigServiceImpl extends ServiceImpl<LevelConfigMapper, Level
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    /**
+     * UserPointServiceImpl 用构造器注入了 LevelConfigService，两边互相依赖会形成循环，
+     * 这里延迟加载打断循环（真正调用时才解析代理）。
+     */
+    @Lazy
     @Autowired
     private UserPointService userPointService;
 
