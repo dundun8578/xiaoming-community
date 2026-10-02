@@ -1,7 +1,7 @@
 # 生产环境配置
 spring:
   datasource:
-    url: jdbc:mysql:<SECRET_b2b6a2e4>
+    url: jdbc:mysql://mysql:3306/community_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: prod_user
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver

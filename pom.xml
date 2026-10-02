@@ -31,6 +31,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+              强制统一 Spring Boot 版本：
+              druid-spring-boot-starter 会传递依赖 spring-boot-autoconfigure:1.5.22.RELEASE，
+              按 Maven「最近优先」规则它会覆盖掉 2.7.18，启动时抛
+              NoClassDefFoundError: org/springframework/boot/bind/RelaxedPropertyResolver。
+              在这里显式钉住版本即可解决。
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-autoconfigure</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter</artifactId>
