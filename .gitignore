@@ -1,9 +1,13 @@
-<<<<<<< HEAD
 # Maven
 .mvn/
 target/
 !target/*.jar
-*.log
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
 
 # IDE
 .idea/
@@ -12,15 +16,14 @@ target/
 *.iws
 *.ipr
 
+# 前端依赖与构建产物
+node_modules/
+dist/
+.vite/
+
 # 操作系统
 .DS_Store
 Thumbs.db
-
-# Java
-*.class
-*.jar
-*.war
-*.ear
 
 # 环境变量
 .env
@@ -37,29 +40,4 @@ docker-compose.override.yml
 # 日志
 logs/
 *.log
-=======
-# Dependencies
-node_modules/
-target/
-.idea/
-
-# Build output
-dist/
-.vite/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-*.iml
-.vscode/
-
-# Logs
-*.log
 npm-debug.log*
-
-# Environment
-.env
-.env.local
->>>>>>> 576117a (init: 小明社区共享服务平台初始代码)

@@ -1,7 +1,8 @@
 # 开发环境配置
 spring:
   datasource:
-    url: jdbc:mysql:<SECRET_54f53270>    username: root
+    url: jdbc:mysql:<SECRET_54f53270>
+    username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
