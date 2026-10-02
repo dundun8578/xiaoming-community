@@ -10,6 +10,7 @@ import com.xiaoming.module.search.document.NoteDocument;
 import com.xiaoming.module.search.repository.NoteSearchRepository;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +25,11 @@ import java.util.stream.Collectors;
 @Service
 public class NoteSearchService {
 
+    /**
+     * Spring Data 的 ES 仓库在实例化时会去连接 ES 建索引，ES 不可用时会直接导致启动失败。
+     * 搜索属于增强能力，不应该拦住应用启动，所以这里延迟加载，真正用到时才初始化。
+     */
+    @Lazy
     @Autowired
     private NoteSearchRepository noteSearchRepository;
 

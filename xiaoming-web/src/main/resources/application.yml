@@ -14,6 +14,12 @@ spring:
   profiles:
     active: dev
 
+  # knife4j 3.0.3 内置的 springfox 3.0.0 与 Spring Boot 2.6+ 的路径匹配策略不兼容，
+  # 不切回 ant_path_matcher 会在启动时报 documentationPluginsBootstrapper 空指针。
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
   servlet:
     multipart:
       max-file-size: 100MB
