@@ -1,4 +1,4 @@
-package com.xiaoming.security.annotation;
+package com.xiaoming.web.annotation;
 
 import java.lang.annotation.*;
 

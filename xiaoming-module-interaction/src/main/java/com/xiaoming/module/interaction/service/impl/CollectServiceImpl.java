@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xiaoming.common.constant.ResultCode;
 import com.xiaoming.common.exception.BusinessException;
+import com.xiaoming.common.exception.GlobalExceptionEnum;
 import com.xiaoming.module.interaction.entity.Collect;
 import com.xiaoming.module.interaction.mapper.CollectMapper;
 import com.xiaoming.module.interaction.vo.CollectVO;
@@ -43,7 +44,7 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper, Collect> impl
         Note note = noteMapper.selectById(noteId);
 
         if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(ResultCode.NOTE_NOT_FOUND);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         }
 
         if (existCollect != null) {

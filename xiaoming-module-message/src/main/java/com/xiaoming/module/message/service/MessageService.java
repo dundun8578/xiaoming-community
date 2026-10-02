@@ -1,5 +1,7 @@
 package com.xiaoming.module.message.service;
 
+import com.xiaoming.module.message.vo.MessageVO;
+
 import java.util.List;
 
 /**
@@ -10,7 +12,7 @@ public interface MessageService {
     /**
      * 获取消息列表
      */
-    List<Object> getMessages(Long userId, Integer pageNum, Integer pageSize);
+    List<MessageVO> getMessages(Long userId, Integer pageNum, Integer pageSize);
 
     /**
      * 获取未读消息数量

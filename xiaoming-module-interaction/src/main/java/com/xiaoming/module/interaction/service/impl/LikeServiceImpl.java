@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiaoming.common.constant.ResultCode;
 import com.xiaoming.common.exception.BusinessException;
+import com.xiaoming.common.exception.GlobalExceptionEnum;
 import com.xiaoming.module.interaction.entity.Like;
 import com.xiaoming.module.interaction.entity.Collect;
 import com.xiaoming.module.interaction.mapper.LikeMapper;
@@ -39,7 +40,7 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
         Note note = noteMapper.selectById(noteId);
 
         if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(ResultCode.NOTE_NOT_FOUND);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         }
 
         if (existLike != null) {

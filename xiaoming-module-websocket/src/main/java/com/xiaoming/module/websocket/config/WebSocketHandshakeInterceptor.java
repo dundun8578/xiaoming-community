@@ -2,7 +2,6 @@ package com.xiaoming.module.websocket.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaoming.security.jwt.JwtTokenProvider;
-import com.xiaoming.module.websocket.handler.WebSocketHandler;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -20,9 +19,11 @@ import java.util.Map;
 public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final WebSocketHandler webSocketHandler;
+    // 用全限定名，避免与 org.springframework.web.socket.WebSocketHandler 简名冲突
+    private final com.xiaoming.module.websocket.handler.WebSocketHandler webSocketHandler;
 
-    public WebSocketHandshakeInterceptor(JwtTokenProvider jwtTokenProvider, WebSocketHandler webSocketHandler) {
+    public WebSocketHandshakeInterceptor(JwtTokenProvider jwtTokenProvider,
+                                         com.xiaoming.module.websocket.handler.WebSocketHandler webSocketHandler) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.webSocketHandler = webSocketHandler;
     }

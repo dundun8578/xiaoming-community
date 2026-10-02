@@ -3,6 +3,7 @@ package com.xiaoming.module.category.controller;
 import com.xiaoming.common.result.Result;
 import com.xiaoming.module.category.dto.CategoryAddDTO;
 import com.xiaoming.module.category.dto.CategoryStatusDTO;
+import com.xiaoming.module.category.entity.Category;
 import com.xiaoming.module.category.service.CategoryService;
 import com.xiaoming.module.category.vo.CategoryVO;
 import io.swagger.v3.oas.annotations.Operation;

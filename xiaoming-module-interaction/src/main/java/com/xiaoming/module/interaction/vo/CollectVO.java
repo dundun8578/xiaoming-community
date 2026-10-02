@@ -1,34 +1,33 @@
 package com.xiaoming.module.interaction.vo;
 
-import io.swagger.v3.annotations.ApiModel;
-import io.swagger.v3.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
  * 收藏列表项VO
  */
 @Data
-@ApiModel("收藏列表项")
+@Schema(description = "收藏列表项")
 public class CollectVO {
 
-    @ApiModelProperty("收藏ID")
+    @Schema(description = "收藏ID")
     private Long id;
 
-    @ApiModelProperty("笔记ID")
+    @Schema(description = "笔记ID")
     private Long noteId;
 
-    @ApiModelProperty("笔记标题")
+    @Schema(description = "笔记标题")
     private String title;
 
-    @ApiModelProperty("封面图")
+    @Schema(description = "封面图")
     private String coverImage;
 
-    @ApiModelProperty("作者ID")
+    @Schema(description = "作者ID")
     private Long authorId;
 
-    @ApiModelProperty("作者名称")
+    @Schema(description = "作者名称")
     private String authorName;
 
-    @ApiModelProperty("收藏时间")
+    @Schema(description = "收藏时间")
     private String createTime;
 }

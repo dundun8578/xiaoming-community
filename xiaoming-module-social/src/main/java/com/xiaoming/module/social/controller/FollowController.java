@@ -3,8 +3,8 @@ package com.xiaoming.module.social.controller;
 import com.xiaoming.common.result.Result;
 import com.xiaoming.module.social.entity.Follow;
 import com.xiaoming.module.social.service.FollowService;
-import io.swagger.v3.annotations.Api;
-import io.swagger.v3.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +15,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/follow")
-{tags = "社交模块-关注")
+@Tag(name = "社交模块-关注")
 public class FollowController {
 
     @Autowired

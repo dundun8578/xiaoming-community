@@ -5,8 +5,8 @@ import com.xiaoming.module.interaction.service.CollectService;
 import com.xiaoming.module.interaction.service.LikeService;
 import com.xiaoming.module.interaction.vo.CollectVO;
 import com.xiaoming.module.interaction.vo.LikeVO;
-import io.swagger.v3.annotations.Api;
-import io.swagger.v3.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +17,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/interaction")
-{tags = "互动模块")
+@Tag(name = "互动模块")
 public class InteractionController {
 
     @Autowired

@@ -2,8 +2,8 @@ package com.xiaoming.module.minio.controller;
 
 import com.xiaoming.common.result.Result;
 import com.xiaoming.module.minio.service.MinioService;
-import io.swagger.v3.annotations.Api;
-import io.swagger.v3.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @RestController
 @RequestMapping("/file")
-{tags = "文件上传模块")
+@Tag(name = "文件上传模块")
 public class FileUploadController {
 
     @Autowired

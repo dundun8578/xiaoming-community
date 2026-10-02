@@ -1,6 +1,5 @@
 package com.xiaoming.web.config;
 
-import com.xiaoming.web.config.CurrentUserArgumentResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;

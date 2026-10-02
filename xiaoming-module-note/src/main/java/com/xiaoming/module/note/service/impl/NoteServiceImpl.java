@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaoming.common.constant.ResultCode;
 import com.xiaoming.common.exception.BusinessException;
+import com.xiaoming.common.exception.GlobalExceptionEnum;
 import com.xiaoming.module.note.dto.NotePublishDTO;
 import com.xiaoming.module.note.dto.NoteUpdateDTO;
 import com.xiaoming.module.note.entity.Note;
@@ -81,10 +82,10 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         // 查询笔记
         Note note = getById(noteId);
         if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(ResultCode.NOTE_NOT_FOUND);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         }
         if (!note.getUserId().equals(userId)) {
-            throw new BusinessException(ResultCode.NOTE_NOT_OWNER);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_OWNER);
         }
 
         // 更新字段
@@ -105,10 +106,10 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
     public void deleteNote(Long userId, Long noteId) {
         Note note = getById(noteId);
         if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(ResultCode.NOTE_NOT_FOUND);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         }
         if (!note.getUserId().equals(userId)) {
-            throw new BusinessException(ResultCode.NOTE_NOT_OWNER);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_OWNER);
         }
 
         // 逻辑删除
@@ -124,10 +125,10 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
     public NoteVO getNoteDetail(Long noteId, Long currentUserId) {
         Note note = getById(noteId);
         if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(ResultCode.NOTE_NOT_FOUND);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         }
         if (note.getStatus() != 1) {
-            throw new BusinessException(ResultCode.NOTE_DELETED);
+            throw new BusinessException(GlobalExceptionEnum.NOTE_DELETED);
         }
 
         // 增加浏览数

@@ -5,8 +5,8 @@ import com.xiaoming.module.note.dto.NotePublishDTO;
 import com.xiaoming.module.note.dto.NoteUpdateDTO;
 import com.xiaoming.module.note.service.NoteService;
 import com.xiaoming.module.note.vo.NoteVO;
-import io.swagger.v3.annotations.Api;
-import io.swagger.v3.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +18,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/note")
-{tags = "笔记模块")
+@Tag(name = "笔记模块")
 public class NoteController {
 
     @Autowired

@@ -1,29 +1,31 @@
 package com.xiaoming.module.level.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaoming.module.level.entity.LevelConfig;
 import com.xiaoming.module.level.entity.UserPoint;
-import com.xiaoming.module.level.entity.PointRecord;
-import com.xiaoming.module.level.entity.UserBadge;
-import com.xiaoming.module.level.mapper.PointRecordMapper;
-import com.xiaoming.module.level.mapper.UserBadgeMapper;
-import com.xiaoming.module.level.service.LevelConfigService;
-import com.xiaoming.module.level.vo.UserLevelVO;
-import com.xiaoming.module.level.vo.PointRecordVO;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaoming.module.level.mapper.LevelConfigMapper;
+import com.xiaoming.module.level.service.LevelConfigService;
+import com.xiaoming.module.level.service.UserPointService;
+import com.xiaoming.module.level.vo.UserLevelVO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 等级配置服务实现
  */
 @Service
 public class LevelConfigServiceImpl extends ServiceImpl<LevelConfigMapper, LevelConfig> implements LevelConfigService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Autowired
+    private UserPointService userPointService;
 
     @Override
     public LevelConfig getByLevel(Integer level) {
@@ -49,7 +51,7 @@ public class LevelConfigServiceImpl extends ServiceImpl<LevelConfigMapper, Level
 
     @Override
     public UserLevelVO getUserLevelInfo(Long userId) {
-        UserPoint userPoint = this.getByUserId(userId);
+        UserPoint userPoint = userPointService.getByUserId(userId);
         if (userPoint == null) {
             return null;
         }
@@ -80,7 +82,7 @@ public class LevelConfigServiceImpl extends ServiceImpl<LevelConfigMapper, Level
         vo.setNextLevelExp(nextLevelExp);
         vo.setTotalPoint(userPoint.getTotalPoint());
         vo.setAvailablePoint(userPoint.getAvailablePoint());
-        vo.setPrivilege(com.alibaba.fastjson2.JSONObject.parseObject(currentConfig.getPrivilege(), Map.class));
+        vo.setPrivilege(parsePrivilege(currentConfig.getPrivilege()));
 
         return vo;
     }
@@ -93,5 +95,19 @@ public class LevelConfigServiceImpl extends ServiceImpl<LevelConfigMapper, Level
         int range = currentLevel.getMaxExp() - currentLevel.getMinExp();
         int progress = (currentExp - currentLevel.getMinExp()) * 100 / range;
         return Math.min(Math.max(progress, 0), 100);
+    }
+
+    /**
+     * 解析等级特权JSON（原实现依赖 fastjson2，这里统一改用项目已有的 Jackson）
+     */
+    private Map<String, Object> parsePrivilege(String privilege) {
+        if (privilege == null || privilege.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.readValue(privilege, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

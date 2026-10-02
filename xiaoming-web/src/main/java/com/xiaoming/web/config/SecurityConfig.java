@@ -1,3 +1,5 @@
+package com.xiaoming.web.config;
+
 import com.xiaoming.module.user.security.UserDetailsServiceImpl;
 import com.xiaoming.web.config.RestAuthenticationEntryPoint;
 import com.xiaoming.web.filter.JwtAuthenticationTokenFilter;

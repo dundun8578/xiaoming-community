@@ -1,8 +1,7 @@
-package com.xiaoming.security.config;
+package com.xiaoming.web.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xiaoming.security.annotation.CurrentUser;
-import com.xiaoming.security.util.SecurityUtils;
+import com.xiaoming.web.annotation.CurrentUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -15,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * 当前用户参数解析器
+ * userId 由 JwtAuthenticationTokenFilter 解析 Token 后写入 request attribute
  */
 @Component
 public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
@@ -34,10 +34,18 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
                                   NativeWebRequest webRequest,
                                   WebDataBinderFactory binderFactory) throws Exception {
         CurrentUser annotation = parameter.getParameterAnnotation(CurrentUser.class);
-        boolean required = annotation != null && annotation.required();
+        boolean required = annotation == null || annotation.required();
 
         HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
-        Long userId = SecurityUtils.getCurrentUserId(request);
+        Long userId = null;
+        if (request != null) {
+            Object attribute = request.getAttribute("userId");
+            if (attribute instanceof Long) {
+                userId = (Long) attribute;
+            } else if (attribute != null) {
+                userId = Long.valueOf(attribute.toString());
+            }
+        }
 
         if (userId == null && required) {
             throw new RuntimeException("用户未登录");

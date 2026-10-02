@@ -3,15 +3,15 @@ package com.xiaoming.module.message.controller;
 import com.xiaoming.common.result.Result;
 import com.xiaoming.module.message.vo.MessageVO;
 import com.xiaoming.module.message.service.MessageService;
-import io.swagger.v3.annotations.Api;
-import io.swagger.v3.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
 @RequestMapping("/message")
-{tags = "消息模块")
+@Tag(name = "消息模块")
 public class MessageController {
 
     @Autowired

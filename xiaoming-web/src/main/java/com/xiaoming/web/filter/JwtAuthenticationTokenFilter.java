@@ -17,6 +17,7 @@ import java.io.IOException;
 /**
  * JWT认证过滤器
  * 只负责Token验证，不查询用户详情（避免循环依赖）
+ * 同时把解析出的 userId 写入 request attribute，供 @RequestAttribute("userId") / @CurrentUser 使用
  */
 @Component
 public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
@@ -32,14 +33,21 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         String authToken = null;
         String username = null;
+        Long userId = null;
 
         if (header != null && header.startsWith("Bearer ")) {
             authToken = header.substring(7);
             try {
                 username = jwtTokenProvider.getUsernameFromToken(authToken);
+                userId = jwtTokenProvider.getUserIdFromToken(authToken);
             } catch (Exception ignored) {
                 // Token解析失败，继续
             }
+        }
+
+        // 关键：把 userId 暴露给 Controller（@RequestAttribute("userId")）
+        if (userId != null) {
+            request.setAttribute("userId", userId);
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

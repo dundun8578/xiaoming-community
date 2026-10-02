@@ -1,5 +1,6 @@
 package com.xiaoming.module.level.service;
 
+import com.xiaoming.module.level.dto.PointChangeDTO;
 import com.xiaoming.module.level.entity.PointRecord;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiaoming.module.level.mapper.PointRecordMapper;

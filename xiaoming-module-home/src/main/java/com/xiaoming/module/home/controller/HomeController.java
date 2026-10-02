@@ -3,8 +3,8 @@ package com.xiaoming.module.home.controller;
 import com.xiaoming.common.result.Result;
 import com.xiaoming.module.home.service.HomeService;
 import com.xiaoming.module.note.vo.NoteVO;
-import io.swagger.v3.annotations.Api;
-import io.swagger.v3.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/home")
-{tags = "首页推荐")
+@Tag(name = "首页推荐")
 public class HomeController {
 
     @Autowired
