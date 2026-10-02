@@ -41,11 +41,6 @@
         </dependency>
         <dependency>
             <groupId>com.xiaoming</groupId>
-            <artifactId>xiaoming-module-mq</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.xiaoming</groupId>
             <artifactId>xiaoming-module-message</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -148,7 +148,13 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
-    </dependencies>
+            <!-- 模块依赖 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+</dependencies>
 
     <build>
         <plugins>

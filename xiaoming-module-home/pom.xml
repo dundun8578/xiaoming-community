@@ -47,5 +47,11 @@
             <artifactId>lombok</artifactId>
             
         </dependency>
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-note</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>

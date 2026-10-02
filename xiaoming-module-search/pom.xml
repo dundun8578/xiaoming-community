@@ -31,9 +31,10 @@
         </dependency>
 
         <!-- Elasticsearch -->
+        <!-- 注意: ES 8.x 已移除 elasticsearch-rest-high-level-client，改用官方 Java Client + Spring Data ES -->
         <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
         </dependency>
         <dependency>
             <groupId>co.elastic.clients</groupId>
@@ -46,5 +47,11 @@
             <artifactId>lombok</artifactId>
             
         </dependency>
-    </dependencies>
+            <!-- 模块依赖 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-note</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+</dependencies>
 </project>

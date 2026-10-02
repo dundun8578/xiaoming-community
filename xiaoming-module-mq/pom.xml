@@ -34,5 +34,23 @@
             <artifactId>lombok</artifactId>
             
         </dependency>
-    </dependencies>
+            <!-- 模块依赖 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-message</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- 模块依赖 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-note</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- 模块依赖 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-social</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+</dependencies>
 </project>
