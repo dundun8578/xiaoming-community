@@ -13,7 +13,7 @@
     <artifactId>xiaoming-module-user</artifactId>
     <packaging>jar</packaging>
     <name>xiaoming-module-user</name>
-    <description>用户模块（实体+DTO+VO+Mapper，Service在web层）</description>
+    <description>用户模块（实体+DTO+VO+Mapper+Service）</description>
 
     <dependencies>
         <dependency>
@@ -26,10 +26,21 @@
             <artifactId>xiaoming-security</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- 头像上传走 MinIO -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-minio</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <!-- 登录态存在 Redis（分布式 Session、退出/踢人下线） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
