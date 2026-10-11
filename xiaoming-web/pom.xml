@@ -121,10 +121,10 @@
             <artifactId>mybatis-plus-boot-starter</artifactId>
         </dependency>
 
-        <!-- Knife4j -->
+        <!-- Knife4j（完整版，自带 doc.html 界面；micro 版没有 UI） -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-micro-spring-boot-starter</artifactId>
+            <artifactId>knife4j-spring-boot-starter</artifactId>
         </dependency>
 
         <!-- JWT -->

@@ -11,11 +11,16 @@
     <description>内容社区分享平台</description>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <!--
+          编译级别必须是 17：项目源码用了 Stream.toList()（Java 16+ API）。
+          若这里写 8，IDEA 会以 -release 8 编译，导致 toList()「找不到符号」。
+          本工程不导入 Spring Boot BOM，此处是编译级别唯一权威来源，勿改回 8。
+        -->
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <spring-boot.version>2.7.18</spring-boot.version>
         <mybatis-plus.version>3.5.3</mybatis-plus.version>
         <mysql.version>8.0.33</mysql.version>
@@ -136,9 +141,12 @@
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
             </dependency>
+            <!-- 必须是 knife4j-spring-boot-starter（自带 doc.html 界面）。
+                 原先误用 knife4j-micro-spring-boot-starter（微服务版，不含 UI），
+                 导致 http://localhost:8080/api/doc.html 永远 404。 -->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-micro-spring-boot-starter</artifactId>
+                <artifactId>knife4j-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
             </dependency>
             <dependency>
