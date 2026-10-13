@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaoming.common.constant.ResultCode;
 import com.xiaoming.common.exception.BusinessException;
 import com.xiaoming.common.exception.GlobalExceptionEnum;
@@ -28,6 +29,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -48,8 +51,17 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    private static final String HOT_NOTES_KEY = "hot:notes";
-    private static final long HOT_NOTES_TTL = 300; // 5分钟
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    /** 热榜缓存 key 前缀（后面要拼 pageSize，避免不同页大小共用同一份缓存导致数据错乱） */
+    private static final String HOT_NOTES_KEY_PREFIX = "hot:notes:size:";
+
+    /** 热榜缓存基础过期时间（秒） */
+    private static final long HOT_NOTES_TTL = 300;
+
+    /** 超过这个页大小就不走缓存，防止用超大 pageSize 刷出大量无意义 key（防缓存穿透） */
+    private static final int HOT_NOTES_CACHE_MAX_SIZE = 100;
 
     @Override
     public NoteVO publishNote(Long userId, NotePublishDTO publishDTO) {
@@ -71,7 +83,7 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         save(note);
 
         // 清除热门笔记缓存
-        redisTemplate.delete(HOT_NOTES_KEY);
+        evictHotNotesCache();
 
         // 转换为VO
         return convertToVO(note, userId);
@@ -97,7 +109,7 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         updateById(note);
 
         // 清除热门笔记缓存
-        redisTemplate.delete(HOT_NOTES_KEY);
+        evictHotNotesCache();
 
         return convertToVO(note, userId);
     }
@@ -118,7 +130,7 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         updateById(note);
 
         // 清除热门笔记缓存
-        redisTemplate.delete(HOT_NOTES_KEY);
+        evictHotNotesCache();
     }
 
     @Override
@@ -157,14 +169,17 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
 
     @Override
     public List<NoteVO> getHotNotes(Integer pageNum, Integer pageSize) {
-        // 先尝试从Redis获取
-        String cachedNotes = redisTemplate.opsForValue().get(HOT_NOTES_KEY);
-        if (cachedNotes != null) {
-            // TODO: 反序列化JSON
-            // 这里暂时返回空列表
+        String cacheKey = buildHotNotesKey(pageSize);
+
+        // 1. 先查缓存：命中就返回（Redis 连不上或数据损坏会自动降级，往下走数据库）
+        if (cacheKey != null) {
+            List<NoteVO> cachedList = readHotNotesFromCache(cacheKey);
+            if (cachedList != null) {
+                return cachedList;
+            }
         }
 
-        // 查询热门笔记
+        // 2. 未命中：查数据库
         LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Note::getStatus, 1)
                .eq(Note::getIsDeleted, 0)
@@ -172,9 +187,22 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
                .last("LIMIT " + pageSize);
 
         List<Note> notes = list(wrapper);
-        return notes.stream()
+        List<NoteVO> result = notes.stream()
                 .map(note -> convertToVO(note, null))
                 .collect(Collectors.toList());
+
+        // 3. 回填缓存：TTL 叠加随机抖动，避免大量 key 同一秒集体过期（缓存雪崩）
+        if (cacheKey != null) {
+            try {
+                redisTemplate.opsForValue().set(cacheKey,
+                        objectMapper.writeValueAsString(result),
+                        randomTtl(HOT_NOTES_TTL), TimeUnit.SECONDS);
+            } catch (Exception e) {
+                // 缓存写失败不影响主流程，最坏情况只是这次没缓存上
+            }
+        }
+
+        return result;
     }
 
     @Override
@@ -205,7 +233,60 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
             updateById(note);
 
             // 清除热门笔记缓存
-            redisTemplate.delete(HOT_NOTES_KEY);
+            evictHotNotesCache();
+        }
+    }
+
+    // ------------------------------------------------------------------ 缓存相关私有方法
+
+    /**
+     * 构造热榜缓存 key。返回 null 表示本次不走缓存（pageSize 为空或过大）。
+     */
+    private String buildHotNotesKey(Integer pageSize) {
+        if (pageSize == null || pageSize <= 0 || pageSize > HOT_NOTES_CACHE_MAX_SIZE) {
+            return null;
+        }
+        return HOT_NOTES_KEY_PREFIX + pageSize;
+    }
+
+    /**
+     * 在基础 TTL 上叠加 0~60 秒的随机抖动，防止大量 key 同一秒集体过期（缓存雪崩）。
+     */
+    private long randomTtl(long baseSeconds) {
+        return baseSeconds + (long) (Math.random() * 60);
+    }
+
+    /**
+     * 从缓存读热榜。任何异常（Redis 连不上、JSON 反序列化失败）都返回 null，
+     * 让调用方降级去查数据库 —— 缓存是加速手段，绝不能因为它把主流程拖垮。
+     */
+    private List<NoteVO> readHotNotesFromCache(String cacheKey) {
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached == null) {
+                return null;
+            }
+            return objectMapper.readValue(cached,
+                    objectMapper.getTypeFactory()
+                            .constructCollectionType(List.class, NoteVO.class));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 清除热榜缓存。key 里带了 pageSize，可能存在多个变体，所以按前缀批量删除。
+     * 注意：数据量大的生产环境应改用 scan 迭代或维护 key 集合，
+     * 避免 keys 命令在单线程 Redis 上造成短暂阻塞；本项目数据量小，keys 足够。
+     */
+    private void evictHotNotesCache() {
+        try {
+            Set<String> keys = redisTemplate.keys(HOT_NOTES_KEY_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception e) {
+            // 缓存删不掉不影响业务正确性（数据已经写进库了），最坏只是短期内读到旧缓存
         }
     }
 

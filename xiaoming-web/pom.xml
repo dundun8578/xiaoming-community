@@ -154,7 +154,16 @@
             <artifactId>xiaoming-security</artifactId>
             <version>${project.version}</version>
         </dependency>
-</dependencies>
+
+        <!-- 统计模块：原先漏配这一项，导致 statistics 成为「孤儿模块」——
+             它虽在 <modules> 里能构建，但不在 web 的 classpath 上，
+             StatisticsController 根本不会被加载，文档页里看不到任何统计接口。 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-statistics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
