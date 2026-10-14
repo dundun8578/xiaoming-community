@@ -13,6 +13,8 @@ import com.xiaoming.module.note.dto.NoteUpdateDTO;
 import com.xiaoming.module.note.entity.Note;
 import com.xiaoming.module.note.entity.NoteImage;
 import com.xiaoming.module.note.entity.NoteVideo;
+import com.xiaoming.module.note.event.NoteDeletedEvent;
+import com.xiaoming.module.note.event.NotePublishedEvent;
 import com.xiaoming.module.note.mapper.NoteImageMapper;
 import com.xiaoming.module.note.mapper.NoteMapper;
 import com.xiaoming.module.note.mapper.NoteVideoMapper;
@@ -24,6 +26,7 @@ import com.xiaoming.module.user.service.UserService;
 import com.xiaoming.module.user.vo.UserVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -53,6 +56,9 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     /** 热榜缓存 key 前缀（后面要拼 pageSize，避免不同页大小共用同一份缓存导致数据错乱） */
     private static final String HOT_NOTES_KEY_PREFIX = "hot:notes:size:";
@@ -84,6 +90,11 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
 
         // 清除热门笔记缓存
         evictHotNotesCache();
+
+        // 发布「笔记已发布」事件 → 由 mq 模块监听后投递 RabbitMQ 消息。
+        // 为什么不直接调 MQ 生产者：mq 模块为了拿 Note 实体已经依赖了 note，
+        // note 再依赖 mq 就成环了，所以用 Spring 事件解耦。
+        eventPublisher.publishEvent(new NotePublishedEvent(this, note));
 
         // 转换为VO
         return convertToVO(note, userId);
@@ -131,6 +142,9 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
 
         // 清除热门笔记缓存
         evictHotNotesCache();
+
+        // 发布「笔记已删除」事件 → mq 模块监听后投递消息，消费者会把它从 ES 索引里删掉
+        eventPublisher.publishEvent(new NoteDeletedEvent(this, noteId));
     }
 
     @Override

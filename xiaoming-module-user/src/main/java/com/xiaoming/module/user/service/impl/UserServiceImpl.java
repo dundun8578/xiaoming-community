@@ -24,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -41,6 +43,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     /** Redis 中保存 refreshToken 的 key 前缀 */
     private static final String LOGIN_TOKEN_PREFIX = "login:token:";
+
+    /** Redis 中缓存用户信息的 Hash key 前缀 */
+    private static final String USER_INFO_KEY_PREFIX = "user:info:";
+
+    /** 用户信息缓存基础过期时间（秒） */
+    private static final long USER_INFO_TTL = 1800;
 
     /** 用户状态：1 正常、0 禁用 */
     private static final int STATUS_NORMAL = 1;
@@ -132,7 +140,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (userId == null) {
             return null;
         }
-        return toVO(getById(userId));
+        String key = USER_INFO_KEY_PREFIX + userId;
+
+        // 1. 先读 Redis Hash 缓存（Redis 不可用会自动返回 null 降级到查库）
+        UserVO cached = readUserInfoFromCache(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 2. 未命中：查数据库
+        UserVO vo = toVO(getById(userId));
+        if (vo == null) {
+            return null;
+        }
+
+        // 3. 回写缓存
+        writeUserInfoToCache(key, vo);
+        return vo;
     }
 
     @Override
@@ -160,6 +184,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setPhone(dto.getPhone());
         }
         updateById(user);
+        // 资料变更 → 缓存必须失效，否则会一直读到旧的昵称/简介（Cache Aside：先更库，再删缓存）
+        evictUserInfoCache(userId);
         return toVO(user);
     }
 
@@ -173,6 +199,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String url = minioService.uploadAvatar(file);
         user.setAvatar(url);
         updateById(user);
+        // 头像变更 → 缓存失效
+        evictUserInfoCache(userId);
         return url;
     }
 
@@ -221,6 +249,86 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         vo.setRefreshToken(refreshToken);
         vo.setTokenType("Bearer");
         return vo;
+    }
+
+    // ------------------------------------------------------------------ 用户信息缓存
+
+    /**
+     * 从 Redis Hash 读用户信息。任何异常（Redis 连不上、数据异常）都返回 null，
+     * 让调用方降级去查库 —— 缓存是加速手段，不能拖垮主流程。
+     *
+     * 注意：只缓存「与访问者无关」的字段。isFollowed 这种因人而异的字段不缓存，
+     * 否则 A 的「已关注」状态会被 B 读到。
+     */
+    private UserVO readUserInfoFromCache(String key) {
+        try {
+            Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
+            if (entries == null || entries.isEmpty()) {
+                return null;
+            }
+            UserVO vo = new UserVO();
+            vo.setId(parseLong(entries.get("id")));
+            vo.setUsername(asString(entries.get("username")));
+            vo.setNickname(asString(entries.get("nickname")));
+            vo.setAvatar(asString(entries.get("avatar")));
+            vo.setDescription(asString(entries.get("description")));
+            vo.setFollowerCount(parseLong(entries.get("followerCount")));
+            vo.setFollowingCount(parseLong(entries.get("followingCount")));
+            return vo;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 把用户信息写入 Redis Hash 并设置过期时间。
+     * TTL 加 0~60 秒随机抖动，避免大量 key 同时过期（缓存雪崩）。
+     */
+    private void writeUserInfoToCache(String key, UserVO vo) {
+        try {
+            Map<String, String> map = new HashMap<>();
+            map.put("id", vo.getId() == null ? "" : String.valueOf(vo.getId()));
+            map.put("username", vo.getUsername() == null ? "" : vo.getUsername());
+            map.put("nickname", vo.getNickname() == null ? "" : vo.getNickname());
+            map.put("avatar", vo.getAvatar() == null ? "" : vo.getAvatar());
+            map.put("description", vo.getDescription() == null ? "" : vo.getDescription());
+            map.put("followerCount", vo.getFollowerCount() == null ? "0" : String.valueOf(vo.getFollowerCount()));
+            map.put("followingCount", vo.getFollowingCount() == null ? "0" : String.valueOf(vo.getFollowingCount()));
+
+            redisTemplate.opsForHash().putAll(key, map);
+            redisTemplate.expire(key, USER_INFO_TTL + (long) (Math.random() * 60), TimeUnit.SECONDS);
+        } catch (Exception e) {
+            // 缓存写失败不影响主流程，最坏情况只是这次没缓存上
+        }
+    }
+
+    /**
+     * 用户资料 / 头像变更时主动失效缓存
+     */
+    private void evictUserInfoCache(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        try {
+            redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
+        } catch (Exception e) {
+            // 删不掉不影响业务正确性，最多短期内读到旧缓存
+        }
+    }
+
+    private String asString(Object o) {
+        return o == null ? null : o.toString();
+    }
+
+    private Long parseLong(Object o) {
+        if (o == null || "".equals(o.toString())) {
+            return null;
+        }
+        try {
+            return Long.valueOf(o.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private void clearLoginSession(Long userId) {

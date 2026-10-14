@@ -5,10 +5,13 @@ import com.xiaoming.common.constant.ResultCode;
 import com.xiaoming.common.exception.BusinessException;
 import com.xiaoming.module.message.entity.Message;
 import com.xiaoming.module.message.mapper.MessageMapper;
+import com.xiaoming.module.mq.constant.MQConstant;
 import com.xiaoming.module.note.entity.Note;
 import com.xiaoming.module.note.mapper.NoteMapper;
+import com.xiaoming.module.search.service.NoteSearchService;
 import com.xiaoming.module.social.entity.Follow;
 import com.xiaoming.module.social.mapper.FollowMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -17,6 +20,7 @@ import java.util.List;
 /**
  * 笔记发布消费者
  */
+@Slf4j
 @Component
 public class NotePublishConsumer {
 
@@ -29,11 +33,20 @@ public class NotePublishConsumer {
     @Autowired
     private MessageMapper messageMapper;
 
-    @RabbitListener(queues = "note.publish.queue")
+    /** ES 搜索服务：把新发布的笔记同步进索引，否则搜索永远搜不到数据 */
+    @Autowired
+    private NoteSearchService noteSearchService;
+
+    @RabbitListener(queues = MQConstant.NOTE_PUBLISH_QUEUE)
     public void handleNotePublish(Note note) {
         try {
-            // 1. 更新ES索引 (Step8完成后取消注释)
-            // elasticsearchService.saveNoteToEs(note);
+            // 1. 同步 ES 索引
+            // ES 属于增强能力：同步失败只记日志，不能让整条消息无限重试
+            try {
+                noteSearchService.saveNoteToEs(note);
+            } catch (Exception e) {
+                log.error("同步笔记到 ES 失败，已跳过, noteId={}", note.getId(), e);
+            }
 
             // 2. 推送关注者动态
             List<Follow> followers = followMapper.selectList(
@@ -52,22 +65,26 @@ public class NotePublishConsumer {
                 messageMapper.insert(message);
             }
 
-            System.out.println("笔记发布消息处理完成: noteId=" + note.getId());
+            log.info("笔记发布消息处理完成: noteId={}", note.getId());
         } catch (Exception e) {
-            System.err.println("处理笔记发布消息失败: " + e.getMessage());
+            log.error("处理笔记发布消息失败, noteId={}", note.getId(), e);
             throw e; // 抛出异常触发重试
         }
     }
 
-    @RabbitListener(queues = "note.delete.queue")
+    @RabbitListener(queues = MQConstant.NOTE_DELETE_QUEUE)
     public void handleNoteDelete(Long noteId) {
         try {
-            // 删除ES索引 (Step8完成后取消注释)
-            // elasticsearchService.deleteNoteFromEs(noteId);
+            // 从 ES 删除索引
+            try {
+                noteSearchService.deleteNoteFromEs(noteId);
+            } catch (Exception e) {
+                log.error("从 ES 删除笔记失败，已跳过, noteId={}", noteId, e);
+            }
 
-            System.out.println("笔记删除消息处理完成: noteId=" + noteId);
+            log.info("笔记删除消息处理完成: noteId={}", noteId);
         } catch (Exception e) {
-            System.err.println("处理笔记删除消息失败: " + e.getMessage());
+            log.error("处理笔记删除消息失败, noteId={}", noteId, e);
             throw e;
         }
     }

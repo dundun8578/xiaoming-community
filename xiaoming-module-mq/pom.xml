@@ -46,6 +46,12 @@
             <artifactId>xiaoming-module-note</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- 模块依赖：消费者收到消息后要把笔记同步进 ES 索引，搜索才有数据 -->
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-search</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- 模块依赖 -->
         <dependency>
             <groupId>com.xiaoming</groupId>
