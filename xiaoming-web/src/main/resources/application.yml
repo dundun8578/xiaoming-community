@@ -49,3 +49,29 @@ logging:
     com.xiaoming: debug
     org.springframework.web: info
     com.baomidou.mybatisplus: debug
+
+
+jwt:
+  secret: ${JWT_SECRET:xiaoming-community-local-development-secret-2026}
+  access-token-validity: 1800000
+  refresh-token-validity: 2592000000
+  token-prefix: "Bearer "
+
+# 消费成功后自动确认；失败有限重试，最终进入死信队列
+spring.rabbitmq.listener.simple.acknowledge-mode: auto
+spring.rabbitmq.listener.simple.default-requeue-rejected: false
+spring.rabbitmq.listener.simple.retry.enabled: true
+spring.rabbitmq.listener.simple.retry.max-attempts: 3
+
+search.analyzer: ik_max_word
+
+
+ai:
+  moderation:
+    enabled: ${AI_MODERATION_ENABLED:false}
+    url: ${AI_MODERATION_URL:}
+    api-key: ${AI_MODERATION_API_KEY:}
+    model: ${AI_MODERATION_MODEL:}
+
+spring.rabbitmq.publisher-confirm-type: correlated
+spring.rabbitmq.publisher-returns: true

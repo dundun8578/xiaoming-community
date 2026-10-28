@@ -27,6 +27,8 @@ public class SearchController {
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        if(pageNum<1 || pageSize<1 || pageSize>100 || (long)(pageNum-1)*pageSize>9900)
+            throw new IllegalArgumentException("分页参数超出范围");
         PageRequest pageRequest = PageRequest.of(pageNum - 1, pageSize);
         Page<NoteDocument> page = noteSearchService.searchNotes(keyword, pageRequest);
         return Result.ok(page.getContent());

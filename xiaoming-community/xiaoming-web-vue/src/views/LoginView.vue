@@ -38,6 +38,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { login, register } from '../api'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,10 +48,10 @@ const loginForm = ref({ username: '', password: '' })
 const registerForm = ref({ username: '', password: '', nickname: '' })
 
 function saveTokenAndGo(data) {
-  localStorage.setItem('accessToken', data.accessToken)
-  localStorage.setItem('refreshToken', data.refreshToken)
-  localStorage.setItem('nickname', data.nickname || data.username)
-  router.push(route.query.redirect || '/')
+
+  useAuthStore().save(data)
+  const redirect=route.query.redirect
+  router.push(typeof redirect==='string' && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
 }
 
 async function doLogin() {

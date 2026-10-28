@@ -25,3 +25,6 @@ export const uploadImage = (formData) =>
   request.post('/file/upload/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
+
+export const getFollowStatus = (userId) => request.get('/follow/status/'+userId)
+export const toggleFollow = (userId) => request.post('/follow/'+userId)

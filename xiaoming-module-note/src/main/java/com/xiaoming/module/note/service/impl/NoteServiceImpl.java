@@ -1,350 +1,184 @@
 package com.xiaoming.module.note.service;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xiaoming.common.constant.ResultCode;
 import com.xiaoming.common.exception.BusinessException;
 import com.xiaoming.common.exception.GlobalExceptionEnum;
-import com.xiaoming.module.note.dto.NotePublishDTO;
-import com.xiaoming.module.note.dto.NoteUpdateDTO;
-import com.xiaoming.module.note.entity.Note;
-import com.xiaoming.module.note.entity.NoteImage;
-import com.xiaoming.module.note.entity.NoteVideo;
-import com.xiaoming.module.note.event.NoteDeletedEvent;
-import com.xiaoming.module.note.event.NotePublishedEvent;
-import com.xiaoming.module.note.mapper.NoteImageMapper;
-import com.xiaoming.module.note.mapper.NoteMapper;
-import com.xiaoming.module.note.mapper.NoteVideoMapper;
-import com.xiaoming.module.note.vo.NoteImageVO;
-import com.xiaoming.module.note.vo.NoteVO;
-import com.xiaoming.module.note.vo.NoteVideoVO;
-import com.xiaoming.module.user.entity.User;
+import com.xiaoming.module.note.dto.*;
+import com.xiaoming.module.note.entity.*;
+import com.xiaoming.module.note.event.*;
+import com.xiaoming.module.note.mapper.*;
+import com.xiaoming.module.note.vo.*;
 import com.xiaoming.module.user.service.UserService;
 import com.xiaoming.module.user.vo.UserVO;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-/**
- * 笔记服务实现
- */
 @Service
-public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements NoteService {
-
-    @Autowired
-    private NoteImageMapper noteImageMapper;
-
-    @Autowired
-    private NoteVideoMapper noteVideoMapper;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private ApplicationEventPublisher eventPublisher;
-
-    /** 热榜缓存 key 前缀（后面要拼 pageSize，避免不同页大小共用同一份缓存导致数据错乱） */
-    private static final String HOT_NOTES_KEY_PREFIX = "hot:notes:size:";
-
-    /** 热榜缓存基础过期时间（秒） */
-    private static final long HOT_NOTES_TTL = 300;
-
-    /** 超过这个页大小就不走缓存，防止用超大 pageSize 刷出大量无意义 key（防缓存穿透） */
-    private static final int HOT_NOTES_CACHE_MAX_SIZE = 100;
-
-    @Override
-    public NoteVO publishNote(Long userId, NotePublishDTO publishDTO) {
-        // 创建笔记
-        Note note = new Note();
-        note.setUserId(userId);
-        note.setTitle(publishDTO.getTitle());
-        note.setContent(publishDTO.getContent());
-        note.setCoverImage(publishDTO.getCoverImage());
-        note.setType(publishDTO.getType());
-        note.setStatus(1); // 已发布
-        note.setTags(publishDTO.getTags());
+public class NoteServiceImpl extends ServiceImpl<NoteMapper,Note> implements NoteService {
+    @Autowired private com.xiaoming.module.note.moderation.NoteModerationService moderation;
+    @Autowired private NoteImageMapper images;
+    @Autowired private NoteVideoMapper videos;
+    @Autowired private UserService users;
+    @Autowired private StringRedisTemplate redis;
+    @Autowired private ObjectMapper json;
+    @Autowired private ApplicationEventPublisher events;
+    @Autowired private ObjectProvider<NoteInteractionReader> interactions;
+    private static final String HOT_PREFIX="hot:notes:size:";
+    private void checkPage(Integer page,Integer size){
+        if(page==null || size==null || page<1 || size<1 || size>100)
+            throw new BusinessException(GlobalExceptionEnum.PARAM_ERROR);
+    }
+    private Note requireNote(Long id){
+        Note note=getById(id);
+        if(note==null)throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
+        return note;
+    }
+    private Note ownNote(Long userId,Long id){
+        Note note=baseMapper.lockById(id);
+        if(note==null)throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
+        if(!userId.equals(note.getUserId()))throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_OWNER);
+        return note;
+    }
+    @Override @Transactional(rollbackFor=Exception.class)
+    public NoteVO publishNote(Long userId,NotePublishDTO dto){
+        Note note=new Note();
+        note.setUserId(userId);note.setTitle(dto.getTitle().trim());note.setContent(dto.getContent());
+        note.setCoverImage(dto.getCoverImage());note.setTags(dto.getTags());note.setType(dto.getType());
+        note.setStatus(1);note.setIsDeleted(0);note.setLikeCount(0);note.setCollectCount(0);
+        note.setCommentCount(0);note.setViewCount(0);note.setHotScore(0L);
         note.setPublishTime(LocalDateTime.now());
-        note.setLikeCount(0);
-        note.setCollectCount(0);
-        note.setCommentCount(0);
-        note.setViewCount(0);
-        note.setHotScore(0L);
-        save(note);
-
-        // 清除热门笔记缓存
-        evictHotNotesCache();
-
-        // 发布「笔记已发布」事件 → 由 mq 模块监听后投递 RabbitMQ 消息。
-        // 为什么不直接调 MQ 生产者：mq 模块为了拿 Note 实体已经依赖了 note，
-        // note 再依赖 mq 就成环了，所以用 Spring 事件解耦。
-        eventPublisher.publishEvent(new NotePublishedEvent(this, note));
-
-        // 转换为VO
-        return convertToVO(note, userId);
+        com.xiaoming.module.note.moderation.ModerationResult review=moderation.review(note);
+        save(note);moderation.save(note.getId(),review);
+        if(Integer.valueOf(1).equals(note.getStatus()))events.publishEvent(new NotePublishedEvent(this,note));
+        return toVO(note,userId);
     }
-
-    @Override
-    public NoteVO updateNote(Long userId, Long noteId, NoteUpdateDTO updateDTO) {
-        // 查询笔记
-        Note note = getById(noteId);
-        if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
+    @Override @Transactional(rollbackFor=Exception.class)
+    public NoteVO updateNote(Long userId,Long noteId,NoteUpdateDTO dto){
+        Note note=ownNote(userId,noteId);
+        boolean wasPublished=Integer.valueOf(1).equals(note.getStatus());
+        if(dto.getTitle()!=null){
+            if(dto.getTitle().isBlank() || dto.getTitle().length()>200)throw new BusinessException(GlobalExceptionEnum.PARAM_ERROR);
+            note.setTitle(dto.getTitle().trim());
         }
-        if (!note.getUserId().equals(userId)) {
-            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_OWNER);
+        if(dto.getContent()!=null){
+            if(dto.getContent().isBlank())throw new BusinessException(GlobalExceptionEnum.PARAM_ERROR);
+            note.setContent(dto.getContent());
         }
-
-        // 更新字段
-        if (updateDTO.getTitle() != null) note.setTitle(updateDTO.getTitle());
-        if (updateDTO.getContent() != null) note.setContent(updateDTO.getContent());
-        if (updateDTO.getCoverImage() != null) note.setCoverImage(updateDTO.getCoverImage());
-        if (updateDTO.getTags() != null) note.setTags(updateDTO.getTags());
+        if(dto.getCoverImage()!=null)note.setCoverImage(dto.getCoverImage());
+        if(dto.getTags()!=null)note.setTags(dto.getTags());
         note.setUpdateTime(LocalDateTime.now());
-        updateById(note);
-
-        // 清除热门笔记缓存
-        evictHotNotesCache();
-
-        return convertToVO(note, userId);
+        com.xiaoming.module.note.moderation.ModerationResult review=moderation.review(note);
+        updateById(note);moderation.save(note.getId(),review);
+        if(!wasPublished && Integer.valueOf(1).equals(note.getStatus()))events.publishEvent(new NotePublishedEvent(this,note));
+        else events.publishEvent(new NoteUpdatedEvent(this,noteId));
+        return toVO(note,userId);
     }
-
-    @Override
-    public void deleteNote(Long userId, Long noteId) {
-        Note note = getById(noteId);
-        if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
-        }
-        if (!note.getUserId().equals(userId)) {
-            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_OWNER);
-        }
-
-        // 逻辑删除
-        note.setIsDeleted(1);
-        note.setStatus(2); // 已下架
-        updateById(note);
-
-        // 清除热门笔记缓存
-        evictHotNotesCache();
-
-        // 发布「笔记已删除」事件 → mq 模块监听后投递消息，消费者会把它从 ES 索引里删掉
-        eventPublisher.publishEvent(new NoteDeletedEvent(this, noteId));
+    @Override @Transactional(rollbackFor=Exception.class)
+    public void deleteNote(Long userId,Long noteId){
+        ownNote(userId,noteId);
+        removeById(noteId);
+        events.publishEvent(new NoteDeletedEvent(this,noteId));
     }
-
     @Override
-    public NoteVO getNoteDetail(Long noteId, Long currentUserId) {
-        Note note = getById(noteId);
-        if (note == null || note.getIsDeleted() == 1) {
-            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
-        }
-        if (note.getStatus() != 1) {
+    public NoteVO getNoteDetail(Long noteId,Long viewer){
+        Note note=requireNote(noteId);
+        if(!Integer.valueOf(1).equals(note.getStatus()) && !note.getUserId().equals(viewer))
             throw new BusinessException(GlobalExceptionEnum.NOTE_DELETED);
-        }
-
-        // 增加浏览数
-        note.setViewCount(note.getViewCount() + 1);
-        updateById(note);
-
-        // 转换VO
-        return convertToVO(note, currentUserId);
+        increaseViewCount(noteId);note.setViewCount(note.getViewCount()+1);
+        return toVO(note,viewer);
     }
-
     @Override
-    public List<NoteVO> getUserNotes(Long userId, Integer pageNum, Integer pageSize) {
-        LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Note::getUserId, userId)
-               .eq(Note::getStatus, 1)
-               .eq(Note::getIsDeleted, 0)
-               .orderByDesc(Note::getPublishTime);
-
-        Page<Note> page = new Page<>(pageNum, pageSize);
-        IPage<Note> notePage = page(page, wrapper);
-
-        return notePage.getRecords().stream()
-                .map(note -> convertToVO(note, userId))
-                .collect(Collectors.toList());
+    public List<NoteVO> getUserNotes(Long userId,Integer pageNum,Integer pageSize){
+        checkPage(pageNum,pageSize);
+        return page(new Page<Note>(pageNum,pageSize),new LambdaQueryWrapper<Note>()
+            .eq(Note::getUserId,userId).eq(Note::getStatus,1).orderByDesc(Note::getPublishTime).orderByDesc(Note::getId))
+            .getRecords().stream().map(n->toVO(n,null)).collect(Collectors.toList());
     }
-
     @Override
-    public List<NoteVO> getHotNotes(Integer pageNum, Integer pageSize) {
-        String cacheKey = buildHotNotesKey(pageSize);
+    public List<NoteVO> getHotNotes(Integer pageNum,Integer pageSize){
+        checkPage(pageNum,pageSize);
+        String key=pageNum==1?HOT_PREFIX+pageSize:null;
+        if(key!=null)try{
+            String cached=redis.opsForValue().get(key);
+            if(cached!=null)return json.readValue(cached,json.getTypeFactory().constructCollectionType(List.class,NoteVO.class));
+        }catch(Exception ignored){}
 
-        // 1. 先查缓存：命中就返回（Redis 连不上或数据损坏会自动降级，往下走数据库）
-        if (cacheKey != null) {
-            List<NoteVO> cachedList = readHotNotesFromCache(cacheKey);
-            if (cachedList != null) {
-                return cachedList;
-            }
-        }
-
-        // 2. 未命中：查数据库
-        LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Note::getStatus, 1)
-               .eq(Note::getIsDeleted, 0)
-               .orderByDesc(Note::getHotScore)
-               .last("LIMIT " + pageSize);
-
-        List<Note> notes = list(wrapper);
-        List<NoteVO> result = notes.stream()
-                .map(note -> convertToVO(note, null))
-                .collect(Collectors.toList());
-
-        // 3. 回填缓存：TTL 叠加随机抖动，避免大量 key 同一秒集体过期（缓存雪崩）
-        if (cacheKey != null) {
-            try {
-                redisTemplate.opsForValue().set(cacheKey,
-                        objectMapper.writeValueAsString(result),
-                        randomTtl(HOT_NOTES_TTL), TimeUnit.SECONDS);
-            } catch (Exception e) {
-                // 缓存写失败不影响主流程，最坏情况只是这次没缓存上
-            }
-        }
-
+        List<NoteVO> ranked=readRanked(pageNum,pageSize);
+        List<NoteVO> result=ranked!=null?ranked:page(new Page<Note>(pageNum,pageSize),new LambdaQueryWrapper<Note>()
+            .eq(Note::getStatus,1).orderByDesc(Note::getHotScore).orderByDesc(Note::getId))
+            .getRecords().stream().map(n->toVO(n,null)).collect(Collectors.toList());
+        if(key!=null)try{redis.opsForValue().set(key,json.writeValueAsString(result),300+(long)(Math.random()*60),TimeUnit.SECONDS);}
+        catch(Exception ignored){}
         return result;
     }
 
+    private List<NoteVO> readRanked(int pageNum,int pageSize){
+        try{
+            Set<String> ids=redis.opsForZSet().reverseRange("recommend:hot",(long)(pageNum-1)*pageSize,(long)pageNum*pageSize-1);
+            if(ids==null || ids.isEmpty())return null;
+            Map<Long,Note> records=listByIds(ids.stream().map(Long::valueOf).collect(Collectors.toList()))
+                .stream().filter(n->Integer.valueOf(1).equals(n.getStatus())).collect(Collectors.toMap(Note::getId,n->n));
+            if(records.size()!=ids.size())return null;
+            return ids.stream().map(Long::valueOf).map(records::get).map(n->toVO(n,null)).collect(Collectors.toList());
+        }catch(Exception e){return null;}
+    }
     @Override
-    public List<NoteVO> getRecommendNotes(Long userId, Integer pageNum, Integer pageSize) {
-        // TODO: Step8 ES搜索模块完成后实现个性化推荐
-        return getHotNotes(pageNum, pageSize);
+    public List<NoteVO> getRecommendNotes(Long userId,Integer pageNum,Integer pageSize){
+        return getHotNotes(pageNum,pageSize);
     }
-
     @Override
-    public void increaseViewCount(Long noteId) {
-        Note note = getById(noteId);
-        if (note != null) {
-            note.setViewCount(note.getViewCount() + 1);
-            updateById(note);
-        }
+    public void increaseViewCount(Long id){
+        update(new LambdaUpdateWrapper<Note>().eq(Note::getId,id).eq(Note::getStatus,1).setSql("view_count = view_count + 1"));
     }
-
     @Override
-    public void updateHotScore(Long noteId) {
-        Note note = getById(noteId);
-        if (note != null) {
-            // 热度算法: 浏览*1 + 点赞*5 + 收藏*10 + 评论*3
-            long hotScore = note.getViewCount() * 1L
-                    + note.getLikeCount() * 5L
-                    + note.getCollectCount() * 10L
-                    + note.getCommentCount() * 3L;
-            note.setHotScore(hotScore);
-            updateById(note);
-
-            // 清除热门笔记缓存
-            evictHotNotesCache();
-        }
+    public void updateHotScore(Long id){
+        Note note=getById(id);
+        if(note==null)return;
+        long score=note.getViewCount()+note.getLikeCount()*5L+note.getCollectCount()*10L+note.getCommentCount()*3L;
+        update(new LambdaUpdateWrapper<Note>().eq(Note::getId,id).set(Note::getHotScore,score));
+        evictHotCache();
     }
-
-    // ------------------------------------------------------------------ 缓存相关私有方法
-
-    /**
-     * 构造热榜缓存 key。返回 null 表示本次不走缓存（pageSize 为空或过大）。
-     */
-    private String buildHotNotesKey(Integer pageSize) {
-        if (pageSize == null || pageSize <= 0 || pageSize > HOT_NOTES_CACHE_MAX_SIZE) {
-            return null;
-        }
-        return HOT_NOTES_KEY_PREFIX + pageSize;
+    @TransactionalEventListener(phase=TransactionPhase.AFTER_COMMIT,fallbackExecution=true,
+        classes={NotePublishedEvent.class,NoteUpdatedEvent.class,NoteDeletedEvent.class})
+    public void onNoteChanged(ApplicationEvent event){evictHotCache();}
+    public void evictHotCache(){
+        try{redis.delete(java.util.stream.IntStream.rangeClosed(1,100).mapToObj(n->HOT_PREFIX+n).collect(Collectors.toList()));}
+        catch(Exception ignored){}
     }
-
-    /**
-     * 在基础 TTL 上叠加 0~60 秒的随机抖动，防止大量 key 同一秒集体过期（缓存雪崩）。
-     */
-    private long randomTtl(long baseSeconds) {
-        return baseSeconds + (long) (Math.random() * 60);
-    }
-
-    /**
-     * 从缓存读热榜。任何异常（Redis 连不上、JSON 反序列化失败）都返回 null，
-     * 让调用方降级去查数据库 —— 缓存是加速手段，绝不能因为它把主流程拖垮。
-     */
-    private List<NoteVO> readHotNotesFromCache(String cacheKey) {
-        try {
-            String cached = redisTemplate.opsForValue().get(cacheKey);
-            if (cached == null) {
-                return null;
-            }
-            return objectMapper.readValue(cached,
-                    objectMapper.getTypeFactory()
-                            .constructCollectionType(List.class, NoteVO.class));
-        } catch (Exception e) {
-            return null;
+    private NoteVO toVO(Note note,Long viewer){
+        NoteVO vo=new NoteVO();BeanUtils.copyProperties(note,vo);
+        if(viewer!=null && viewer.equals(note.getUserId())) {
+            NoteModeration record=moderation.latest(note.getId());
+            if(record!=null){vo.setModerationStatus(record.getDecision());vo.setModerationReason(record.getReason());}
         }
-    }
-
-    /**
-     * 清除热榜缓存。key 里带了 pageSize，可能存在多个变体，所以按前缀批量删除。
-     * 注意：数据量大的生产环境应改用 scan 迭代或维护 key 集合，
-     * 避免 keys 命令在单线程 Redis 上造成短暂阻塞；本项目数据量小，keys 足够。
-     */
-    private void evictHotNotesCache() {
-        try {
-            Set<String> keys = redisTemplate.keys(HOT_NOTES_KEY_PREFIX + "*");
-            if (keys != null && !keys.isEmpty()) {
-                redisTemplate.delete(keys);
-            }
-        } catch (Exception e) {
-            // 缓存删不掉不影响业务正确性（数据已经写进库了），最坏只是短期内读到旧缓存
+        UserVO user=users.getUserInfo(note.getUserId());
+        if(user!=null){vo.setAuthorName(user.getNickname());vo.setAuthorAvatar(user.getAvatar());}
+        else vo.setAuthorName("已注销用户");
+        List<NoteImage> imageList=images.selectList(new LambdaQueryWrapper<NoteImage>()
+            .eq(NoteImage::getNoteId,note.getId()).orderByAsc(NoteImage::getSort));
+        vo.setImages(imageList.stream().map(img->{NoteImageVO item=new NoteImageVO();BeanUtils.copyProperties(img,item);return item;})
+            .collect(Collectors.toList()));
+        NoteVideo video=videos.selectOne(new LambdaQueryWrapper<NoteVideo>().eq(NoteVideo::getNoteId,note.getId()).last("LIMIT 1"));
+        if(video!=null){NoteVideoVO item=new NoteVideoVO();BeanUtils.copyProperties(video,item);vo.setVideo(item);}
+        if(viewer!=null){
+            NoteInteractionReader reader=interactions.getIfAvailable();
+            vo.setIsLiked(reader!=null && reader.isLiked(viewer,note.getId()));
+            vo.setIsCollected(reader!=null && reader.isCollected(viewer,note.getId()));
         }
-    }
-
-    /**
-     * 转换为VO
-     */
-    private NoteVO convertToVO(Note note, Long currentUserId) {
-        NoteVO vo = new NoteVO();
-        BeanUtils.copyProperties(note, vo);
-
-        // 作者信息
-        UserVO userVO = userService.getUserInfo(note.getUserId());
-        vo.setAuthorName(userVO.getNickname());
-        vo.setAuthorAvatar(userVO.getAvatar());
-
-        // 图片列表
-        List<NoteImage> images = noteImageMapper.selectList(
-                new LambdaQueryWrapper<NoteImage>().eq(NoteImage::getNoteId, note.getId()).orderByAsc(NoteImage::getSort)
-        );
-        if (!images.isEmpty()) {
-            vo.setImages(images.stream().map(img -> {
-                NoteImageVO imgVO = new NoteImageVO();
-                BeanUtils.copyProperties(img, imgVO);
-                return imgVO;
-            }).collect(Collectors.toList()));
-        }
-
-        // 视频信息
-        NoteVideo video = noteVideoMapper.selectOne(
-                new LambdaQueryWrapper<NoteVideo>().eq(NoteVideo::getNoteId, note.getId())
-        );
-        if (video != null) {
-            NoteVideoVO videoVO = new NoteVideoVO();
-            BeanUtils.copyProperties(video, videoVO);
-            vo.setVideo(videoVO);
-        }
-
-        // 点赞状态和收藏状态
-        if (currentUserId != null) {
-            // TODO: Step6 完成后从互动模块查询
-            vo.setIsLiked(false);
-            vo.setIsCollected(false);
-        }
-
         return vo;
     }
 }

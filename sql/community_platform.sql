@@ -403,3 +403,34 @@ INSERT INTO `comment` (`note_id`, `user_id`, `parent_id`, `content`) VALUES
 INSERT INTO `message` (`from_user_id`, `to_user_id`, `type`, `content`, `target_id`, `is_read`) VALUES
 (2, 1, 4, '你关注的用户发布了新笔记: 周末在家做了一顿超满足的早餐', 1, 0),
 (3, 1, 4, '你关注的用户发布了新笔记: 云南六天五晚自由行攻略', 2, 0);
+
+
+-- 自动审核记录：仅新增，不影响已有表
+
+CREATE TABLE IF NOT EXISTS note_moderation (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    note_id BIGINT NOT NULL,
+    decision VARCHAR(20) NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_note_moderation (note_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS note_outbox (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    note_id BIGINT NOT NULL,
+    event_type VARCHAR(20) NOT NULL,
+    sent TINYINT NOT NULL DEFAULT 0,
+    attempts INT NOT NULL DEFAULT 0,
+    available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_outbox_pending (sent, available_at, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 首次启动时补齐演示笔记的搜索索引
+
+INSERT INTO note_outbox(note_id,event_type,sent,attempts,available_at,create_time)
+SELECT n.id,'UPDATE',0,0,NOW(),NOW()
+FROM note n WHERE n.is_deleted=0 AND n.status=1
+AND NOT EXISTS (SELECT 1 FROM note_outbox o WHERE o.note_id=n.id);

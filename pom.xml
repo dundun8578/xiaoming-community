@@ -168,6 +168,7 @@
         <module>xiaoming-module-user</module>
         <module>xiaoming-module-note</module>
         <module>xiaoming-module-interaction</module>
+        <module>xiaoming-module-comment</module>
         <module>xiaoming-module-social</module>
         <module>xiaoming-module-search</module>
         <module>xiaoming-module-mq</module>

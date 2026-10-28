@@ -22,5 +22,5 @@ public interface MessageService {
     /**
      * 标记消息已读
      */
-    void markRead(Long msgId);
+    void markRead(Long userId, Long msgId);
 }

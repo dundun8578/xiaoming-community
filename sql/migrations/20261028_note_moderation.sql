@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS note_moderation (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    note_id BIGINT NOT NULL,
+    decision VARCHAR(20) NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_note_moderation (note_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

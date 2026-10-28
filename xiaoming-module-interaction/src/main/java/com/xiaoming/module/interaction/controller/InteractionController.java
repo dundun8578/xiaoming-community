@@ -49,11 +49,11 @@ public class InteractionController {
     }
 
     @PostMapping("/collect/{noteId}")
-    public Result<Void> toggleCollect(
+    public Result<java.util.Map<String,Boolean>> toggleCollect(
             @RequestAttribute("userId") Long userId,
             @PathVariable Long noteId) {
         collectService.toggleCollect(userId, noteId);
-        return Result.ok();
+        return Result.ok(java.util.Map.of("isCollected",collectService.isCollected(userId,noteId)));
     }
 
     @GetMapping("/collect/list")

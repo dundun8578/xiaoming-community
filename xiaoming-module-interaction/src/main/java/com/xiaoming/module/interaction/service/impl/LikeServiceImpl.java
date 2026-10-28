@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements LikeService {
 
+    @Autowired private org.springframework.context.ApplicationEventPublisher events;
+
     @Autowired
     private NoteMapper noteMapper;
 
@@ -32,12 +34,16 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void toggleLike(Long userId, Long noteId) {
+
+        Note note = noteMapper.lockById(noteId);
+        if (note == null || !Integer.valueOf(1).equals(note.getStatus()))
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         LambdaQueryWrapper<Like> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Like::getUserId, userId)
                .eq(Like::getNoteId, noteId);
 
         Like existLike = getOne(wrapper);
-        Note note = noteMapper.selectById(noteId);
+
 
         if (note == null || note.getIsDeleted() == 1) {
             throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
@@ -57,6 +63,7 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
         }
 
         noteMapper.updateById(note);
+        events.publishEvent(new com.xiaoming.module.note.event.NoteUpdatedEvent(this,noteId));
     }
 
     @Override

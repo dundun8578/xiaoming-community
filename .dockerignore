@@ -1,0 +1,9 @@
+.git
+.idea
+**/target
+**/node_modules
+**/dist
+docker
+logs
+.env
+.env.*

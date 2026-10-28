@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 笔记ES文档
  */
 @Data
-@Document(indexName = "note")
+@Document(indexName = "note", createIndex = false)
 public class NoteDocument {
 
     @Id
@@ -28,6 +28,8 @@ public class NoteDocument {
 
     @Field(type = FieldType.Long)
     private Long userId;
+
+    private String coverImage;
 
     @Field(type = FieldType.Text)
     private String authorName;

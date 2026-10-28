@@ -31,8 +31,8 @@ public class MessageController {
     }
 
     @PutMapping("/{msgId}/read")
-    public Result<Void> markRead(@PathVariable Long msgId) {
-        messageService.markRead(msgId);
+    public Result<Void> markRead(@RequestAttribute("userId") Long userId, @PathVariable Long msgId) {
+        messageService.markRead(userId,msgId);
         return Result.ok();
     }
 }

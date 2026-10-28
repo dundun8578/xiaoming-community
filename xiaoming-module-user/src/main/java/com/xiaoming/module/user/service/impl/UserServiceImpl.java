@@ -108,7 +108,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (isBlank(token)) {
             token = refreshToken;
         }
-        if (!jwtTokenProvider.validateToken(token)) {
+        if (!jwtTokenProvider.validateToken(token) || !jwtTokenProvider.hasTokenType(token,"refresh")) {
             throw new BusinessException(GlobalExceptionEnum.TOKEN_INVALID);
         }
 
@@ -119,7 +119,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(GlobalExceptionEnum.TOKEN_INVALID);
         }
 
-        return jwtTokenProvider.generateAccessToken(jwtTokenProvider.getUsernameFromToken(token), userId);
+
+        User user=getById(userId);
+        if(user==null || !Integer.valueOf(STATUS_NORMAL).equals(user.getStatus()))
+            throw new BusinessException(GlobalExceptionEnum.USER_DISABLED);
+        return jwtTokenProvider.generateAccessToken(user.getUsername(), userId);
     }
 
     @Override

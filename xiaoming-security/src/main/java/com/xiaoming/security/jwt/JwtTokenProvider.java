@@ -30,12 +30,14 @@ public class JwtTokenProvider {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+        claims.put("tokenType","access");
         return createToken(claims, username, accessTokenValidity);
     }
 
     public String generateRefreshToken(String username, Long userId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
+        claims.put("tokenType","refresh");
         return createToken(claims, username, refreshTokenValidity);
     }
 
@@ -90,6 +92,11 @@ public class JwtTokenProvider {
         }
     }
 
+
+    public boolean hasTokenType(String token,String type) {
+        try { return type.equals(getAllClaimsFromToken(token).get("tokenType",String.class)); }
+        catch (RuntimeException e) { return false; }
+    }
     public String resolveToken(String bearerToken) {
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);

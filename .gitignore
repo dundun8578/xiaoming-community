@@ -41,3 +41,16 @@ docker-compose.override.yml
 logs/
 *.log
 npm-debug.log*
+
+# Local service data and integration test outputs
+docker/mysql/
+docker/redis/
+docker/rabbitmq/
+docker/minio/
+docker/elasticsearch/data/
+.runtime/
+
+docker/minio-build/source/
+docker/minio-build/*.tar.gz
+
+docker/elasticsearch/*.zip

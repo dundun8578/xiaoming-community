@@ -1,122 +1,83 @@
-version: '3.8'
-
 services:
-  # MySQL 8.0
   mysql:
     image: mysql:8.0.33
     container_name: xiaoming-mysql
-    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-root}
       MYSQL_DATABASE: community_platform
       TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
+    ports: ["127.0.0.1:13306:3306"]
     volumes:
       - ./docker/mysql:/var/lib/mysql
-      - ./sql/community_platform.sql:/docker-entrypoint-initdb.d/community_platform.sql
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    networks:
-      - xiaoming-network
-
-  # Redis 6.0
+      - ./sql/community_platform.sql:/docker-entrypoint-initdb.d/community_platform.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
   redis:
     image: redis:6.2-alpine
     container_name: xiaoming-redis
-    restart: always
-    command: redis-server --appendonly yes --requirepass ""
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./docker/redis:/data
-    networks:
-      - xiaoming-network
-
-  # RabbitMQ 3.9
+    ports: ["127.0.0.1:6379:6379"]
+    command: redis-server --appendonly yes
+    volumes: ["./docker/redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
   rabbitmq:
-    image: rabbitmq:3.9-management-alpine
+    image: rabbitmq:3.13-management-alpine
     container_name: xiaoming-rabbitmq
-    restart: always
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-      TZ: Asia/Shanghai
-    ports:
-      - "5672:5672"   # AMQP协议端口
-      - "15672:15672" # 管理界面端口
-    volumes:
-      - ./docker/rabbitmq:/var/lib/rabbitmq
-    networks:
-      - xiaoming-network
-
-  # Elasticsearch 8.11
+      RABBITMQ_DEFAULT_USER: xiaoming
+      RABBITMQ_DEFAULT_PASS: xiaoming-local
+    ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
+    volumes: ["./docker/rabbitmq:/var/lib/rabbitmq"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    image: xiaoming-elasticsearch:8.11.0-ik
+    build: ./docker/elasticsearch
     container_name: xiaoming-elasticsearch
-    restart: always
     environment:
-      - node.name=es01
-      - cluster.name=es-docker-cluster
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=false
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    volumes:
-      - ./docker/elasticsearch:/usr/share/elasticsearch/data
-    networks:
-      - xiaoming-network
-
-  # MinIO
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports: ["127.0.0.1:9200:9200"]
+    volumes: ["./docker/elasticsearch/data:/usr/share/elasticsearch/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
   minio:
-    image: minio/minio:latest
+    image: xiaoming-minio:source-7aac2a2
+    build: ./docker/minio-build
     container_name: xiaoming-minio
-    restart: always
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"   # API端口
-      - "9001:9001"   # 控制台端口
-    volumes:
-      - ./docker/minio:/data
-    networks:
-      - xiaoming-network
-
-  # Spring Boot应用
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+    volumes: ["./docker/minio:/data"]
   app:
+    profiles: ["app"]
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     container_name: xiaoming-community-app
-    restart: always
-    ports:
-      - "8080:8080"
+    ports: ["127.0.0.1:8080:8080"]
     environment:
       SPRING_PROFILES_ACTIVE: test
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-root}
     depends_on:
-      - mysql
-      - redis
-      - rabbitmq
-      - elasticsearch
-      - minio
-    networks:
-      - xiaoming-network
-
-networks:
-  xiaoming-network:
-    driver: bridge
-
-volumes:
-  mysql_data:
-  redis_data:
-  rabbitmq_data:
-  elasticsearch_data:
-  minio_data:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+      elasticsearch: {condition: service_healthy}
+      minio: {condition: service_started}

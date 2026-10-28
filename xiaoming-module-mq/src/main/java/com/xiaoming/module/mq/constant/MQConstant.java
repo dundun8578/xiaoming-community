@@ -4,6 +4,10 @@ package com.xiaoming.module.mq.constant;
  * RabbitMQ常量
  */
 public class MQConstant {
+    public static final String NOTE_UPDATE_QUEUE="note.update.queue";
+    public static final String ROUTE_NOTE_UPDATE="note.update";
+    public static final String DEAD_EXCHANGE="note.dead.exchange";
+    public static final String DEAD_QUEUE="note.dead.queue";
 
     /**
      * 笔记交换机

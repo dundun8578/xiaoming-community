@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class CollectServiceImpl extends ServiceImpl<CollectMapper, Collect> implements CollectService {
 
+    @Autowired private org.springframework.context.ApplicationEventPublisher events;
+
     @Autowired
     private NoteMapper noteMapper;
 
@@ -36,12 +38,16 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper, Collect> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void toggleCollect(Long userId, Long noteId) {
+
+        Note note = noteMapper.lockById(noteId);
+        if (note == null || !Integer.valueOf(1).equals(note.getStatus()))
+            throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
         LambdaQueryWrapper<Collect> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Collect::getUserId, userId)
                .eq(Collect::getNoteId, noteId);
 
         Collect existCollect = getOne(wrapper);
-        Note note = noteMapper.selectById(noteId);
+
 
         if (note == null || note.getIsDeleted() == 1) {
             throw new BusinessException(GlobalExceptionEnum.NOTE_NOT_FOUND);
@@ -61,6 +67,7 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper, Collect> impl
         }
 
         noteMapper.updateById(note);
+        events.publishEvent(new com.xiaoming.module.note.event.NoteUpdatedEvent(this,noteId));
     }
 
     @Override

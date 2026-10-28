@@ -43,6 +43,13 @@ public class FileUploadController {
         return Result.ok(url);
     }
 
+
+    @GetMapping("/content/**")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.InputStreamResource> read(
+            javax.servlet.http.HttpServletRequest request) {
+        String uri=request.getRequestURI();
+        return minioService.readFile(uri.substring(uri.indexOf("/file/content/")+"/file/content/".length()));
+    }
     @DeleteMapping("/{objectName}")
     public Result<Void> deleteFile(@PathVariable String objectName) {
         minioService.deleteFile(objectName);

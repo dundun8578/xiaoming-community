@@ -18,6 +18,11 @@
     <dependencies>
         <dependency>
             <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-note</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.xiaoming</groupId>
             <artifactId>xiaoming-common</artifactId>
             <version>${project.version}</version>
         </dependency>

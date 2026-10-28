@@ -11,6 +11,9 @@ import java.util.List;
 @Data
 @Schema(description = "笔记详情")
 public class NoteVO {
+    private Integer status;
+    private String moderationStatus;
+    private String moderationReason;
 
     @Schema(description = "笔记ID")
     private Long id;

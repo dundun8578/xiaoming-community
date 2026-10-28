@@ -6,7 +6,7 @@
         <el-input
           v-model="keyword"
           class="search-input"
-          placeholder="搜索笔记，支持语义搜索"
+          placeholder="搜索笔记"
           clearable
           @keyup.enter="goSearch"
         >
@@ -31,11 +31,15 @@
 
 <script setup>
 import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from './stores/auth'
+import request from './api/request'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const keyword = ref('')
-const token = ref(localStorage.getItem('accessToken'))
+const auth=useAuthStore()
+const { accessToken: token }=storeToRefs(auth)
 
 function goSearch() {
   if (keyword.value.trim()) {
@@ -43,10 +47,10 @@ function goSearch() {
   }
 }
 
-function logout() {
-  localStorage.removeItem('accessToken')
-  token.value = null
-  router.push('/login')
+
+async function logout() {
+  try { await request.post('/user/logout') }
+  finally { auth.clear();router.push('/login') }
 }
 </script>
 

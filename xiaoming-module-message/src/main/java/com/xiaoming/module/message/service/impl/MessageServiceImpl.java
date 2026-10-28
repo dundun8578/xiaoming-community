@@ -19,9 +19,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     public List<MessageVO> getMessages(Long userId, Integer pageNum, Integer pageSize) {
-        List<Message> messages = list(new LambdaQueryWrapper<Message>()
+
+        if(pageNum==null || pageNum<1 || pageSize==null || pageSize<1 || pageSize>100)
+            throw new IllegalArgumentException("分页参数错误");
+        List<Message> messages = page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<Message>(pageNum,pageSize),
+            new LambdaQueryWrapper<Message>()
                 .eq(Message::getToUserId, userId)
-                .orderByDesc(Message::getCreateTime));
+                .orderByDesc(Message::getId)).getRecords();
 
         return messages.stream()
                 .map(this::convertToVO)
@@ -36,8 +40,12 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
-    public void markRead(Long msgId) {
-        // 简化实现
+    public void markRead(Long userId, Long msgId) {
+        Message message=getById(msgId);
+        if(message==null)throw new com.xiaoming.common.exception.BusinessException(com.xiaoming.common.exception.GlobalExceptionEnum.NOT_FOUND);
+        if(!userId.equals(message.getToUserId()))throw new com.xiaoming.common.exception.BusinessException(com.xiaoming.common.exception.GlobalExceptionEnum.FORBIDDEN);
+        update(new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Message>()
+            .eq(Message::getId,msgId).eq(Message::getToUserId,userId).set(Message::getIsRead,1));
     }
 
     /**

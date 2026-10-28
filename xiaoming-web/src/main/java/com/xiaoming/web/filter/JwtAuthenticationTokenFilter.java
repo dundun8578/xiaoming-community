@@ -46,12 +46,12 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         }
 
         // 关键：把 userId 暴露给 Controller（@RequestAttribute("userId")）
-        if (userId != null) {
+        if (userId != null && jwtTokenProvider.hasTokenType(authToken,"access")) {
             request.setAttribute("userId", userId);
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (jwtTokenProvider.validateToken(authToken)) {
+            if (jwtTokenProvider.validateToken(authToken) && jwtTokenProvider.hasTokenType(authToken,"access")) {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(username, null, null);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

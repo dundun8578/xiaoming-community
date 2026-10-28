@@ -14,18 +14,18 @@
           accept="image/*"
           :http-request="handleUpload"
         >
-          <el-button>上传图片（自动生成缩略图）</el-button>
+          <el-button>上传图片</el-button>
         </el-upload>
         <div v-if="form.coverImage" class="preview">
           <el-image :src="form.coverImage" fit="cover" class="preview-img" />
-          <span class="thumb-tip">已上传，服务端已生成缩略图</span>
+          <span class="thumb-tip">图片已上传</span>
         </div>
       </el-form-item>
       <el-form-item label="标签">
         <el-input v-model="form.tags" placeholder="多个标签用英文逗号分隔，如：美食,探店" />
       </el-form-item>
       <el-button type="danger" style="width: 100%" :loading="loading" @click="submit">
-        发布（AI 将自动生成摘要、标签与语义向量）
+        发布笔记
       </el-button>
     </el-form>
   </el-card>
@@ -45,8 +45,8 @@ async function handleUpload({ file }) {
   const formData = new FormData()
   formData.append('file', file)
   const data = await uploadImage(formData)
-  // 服务端返回 {originalUrl, thumbnailUrl}
-  form.coverImage = data.originalUrl
+  // 上传接口返回图片 URL 字符串
+  form.coverImage = data
   ElMessage.success('图片上传成功')
 }
 
@@ -58,7 +58,7 @@ async function submit() {
   loading.value = true
   try {
     const note = await publishNote(form)
-    ElMessage.success('发布成功')
+    ElMessage.success(note.status === 1 ? '发布成功' : '已保存，请查看审核状态')
     router.push(`/note/${note.id}`)
   } finally {
     loading.value = false

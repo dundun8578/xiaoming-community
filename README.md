@@ -1,3 +1,5 @@
+> 本地修复与启动说明已更新：参见 [REPAIR_PROGRESS.md](REPAIR_PROGRESS.md)。在项目根目录运行 .\scripts\start-local.ps1，复用已安装的 JDK 17，并启动前后端及本地依赖。前端为 http://localhost:5173，接口文档为 http://localhost:8080/api/doc.html；本项目 Docker MySQL 使用 13306，避免与本机已有服务冲突。
+
 # 小明社区平台 (Xiaoming Community)
 
 > 一个类似小红书的内容社区分享平台，Java后端秋招简历项目

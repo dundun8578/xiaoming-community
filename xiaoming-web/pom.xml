@@ -16,6 +16,11 @@
     <description>Web启动模块（含安全认证+Controller+Service）</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.xiaoming</groupId>
+            <artifactId>xiaoming-module-comment</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- 业务模块 -->
         <dependency>
             <groupId>com.xiaoming</groupId>
@@ -173,6 +178,13 @@
                 <configuration>
                     <mainClass>com.xiaoming.web.CommunityApplication</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

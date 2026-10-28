@@ -3,9 +3,16 @@
     <el-row :gutter="16">
       <el-col :md="17" :xs="24">
         <el-card shadow="never">
+
           <h2 class="title">{{ note.title }}</h2>
+          <el-alert v-if="note.moderationStatus" :closable="false"
+            :type="note.status === 1 ? 'info' : 'warning'"
+            :title="note.moderationReason" style="margin-bottom:12px" />
           <div class="meta">
+
             <span>{{ note.authorName }}</span>
+            <el-button v-if="note.userId && String(note.userId) !== String(auth.userId)" size="small"
+              :loading="followLoading" @click="followAuthor">{{ followed ? '取消关注' : '关注作者' }}</el-button>
             <span>{{ formatTime(note.publishTime) }}</span>
             <span>👀 {{ note.viewCount }}</span>
           </div>
@@ -30,7 +37,7 @@
             />
           </div>
 
-          <div class="actions">
+          <div v-if="note.status === 1" class="actions">
             <el-button :type="note.isLiked ? 'danger' : 'default'" round @click="like">
               👍 {{ note.likeCount }}
             </el-button>
@@ -40,7 +47,7 @@
           </div>
         </el-card>
 
-        <el-card shadow="never" class="comments">
+        <el-card v-if="note.status === 1" shadow="never" class="comments">
           <h4>评论 {{ note.commentCount }}</h4>
           <div class="comment-input">
             <el-input v-model="commentText" placeholder="说点什么..." @keyup.enter="submitComment" />
@@ -77,9 +84,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { addComment, getNoteDetail, listComments, toggleCollect, toggleLike } from '../api'
+import { addComment, getNoteDetail, listComments, toggleCollect, toggleLike, getFollowStatus, toggleFollow } from '../api'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
+const auth=useAuthStore()
+const followed=ref(false)
+const followLoading=ref(false)
 const note = ref(null)
 const comments = ref([])
 const commentText = ref('')
@@ -95,9 +106,18 @@ function formatTime(t) {
 
 async function load() {
   note.value = await getNoteDetail(route.params.id)
-  comments.value = (await listComments(route.params.id, { pageNum: 1, pageSize: 50 })) || []
+  if(isLogin() && String(note.value.userId)!==String(auth.userId))
+    followed.value=await getFollowStatus(note.value.userId)
+  comments.value = note.value.status === 1 ? ((await listComments(route.params.id, { pageNum: 1, pageSize: 50 })) || []) : []
 }
 
+
+async function followAuthor(){
+  if(!isLogin())return ElMessage.warning('请先登录')
+  followLoading.value=true
+  try{await toggleFollow(note.value.userId);followed.value=await getFollowStatus(note.value.userId)}
+  finally{followLoading.value=false}
+}
 async function like() {
   if (!isLogin()) return ElMessage.warning('请先登录')
   const data = await toggleLike(note.value.id)
@@ -107,8 +127,8 @@ async function like() {
 
 async function collect() {
   if (!isLogin()) return ElMessage.warning('请先登录')
-  await toggleCollect(note.value.id)
-  note.value.isCollected = !note.value.isCollected
+  const data = await toggleCollect(note.value.id)
+  note.value.isCollected = data.isCollected
   note.value.collectCount += note.value.isCollected ? 1 : -1
 }
 

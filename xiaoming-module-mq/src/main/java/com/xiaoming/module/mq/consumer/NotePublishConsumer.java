@@ -38,16 +38,15 @@ public class NotePublishConsumer {
     private NoteSearchService noteSearchService;
 
     @RabbitListener(queues = MQConstant.NOTE_PUBLISH_QUEUE)
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void handleNotePublish(Note note) {
         try {
-            // 1. 同步 ES 索引
-            // ES 属于增强能力：同步失败只记日志，不能让整条消息无限重试
-            try {
-                noteSearchService.saveNoteToEs(note);
-            } catch (Exception e) {
-                log.error("同步笔记到 ES 失败，已跳过, noteId={}", note.getId(), e);
-            }
 
+            Note current = noteMapper.lockIncludingDeleted(note.getId());
+            if(current==null || Integer.valueOf(1).equals(current.getIsDeleted()) || !Integer.valueOf(1).equals(current.getStatus())) {
+                noteSearchService.deleteNoteFromEs(note.getId());return;
+            }
+            noteSearchService.saveNoteToEs(current);
             // 2. 推送关注者动态
             List<Follow> followers = followMapper.selectList(
                     new LambdaQueryWrapper<Follow>()
@@ -55,6 +54,9 @@ public class NotePublishConsumer {
             );
 
             for (Follow follow : followers) {
+                if(messageMapper.selectCount(new LambdaQueryWrapper<Message>()
+                    .eq(Message::getToUserId,follow.getUserId()).eq(Message::getTargetId,note.getId())
+                    .eq(Message::getType,4))>0)continue;
                 Message message = new Message();
                 message.setFromUserId(note.getUserId());
                 message.setToUserId(follow.getUserId());
@@ -72,15 +74,20 @@ public class NotePublishConsumer {
         }
     }
 
+
+    @RabbitListener(queues = MQConstant.NOTE_UPDATE_QUEUE)
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
+    public void syncLatest(Long noteId) {
+        Note current=noteMapper.lockIncludingDeleted(noteId);
+        if(current==null || !Integer.valueOf(1).equals(current.getStatus()))
+            noteSearchService.deleteNoteFromEs(noteId);
+        else noteSearchService.saveNoteToEs(current);
+    }
     @RabbitListener(queues = MQConstant.NOTE_DELETE_QUEUE)
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public void handleNoteDelete(Long noteId) {
         try {
-            // 从 ES 删除索引
-            try {
-                noteSearchService.deleteNoteFromEs(noteId);
-            } catch (Exception e) {
-                log.error("从 ES 删除笔记失败，已跳过, noteId={}", noteId, e);
-            }
+            syncLatest(noteId);
 
             log.info("笔记删除消息处理完成: noteId={}", noteId);
         } catch (Exception e) {

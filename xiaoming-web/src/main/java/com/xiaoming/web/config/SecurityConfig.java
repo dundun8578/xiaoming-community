@@ -43,7 +43,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-            .antMatchers("/user/register", "/user/login").permitAll()
+
+.antMatchers("/user/register", "/user/login", "/user/refresh-token", "/health").permitAll()
+            .antMatchers(org.springframework.http.HttpMethod.GET,
+                "/note/hot", "/note/recommend", "/note/user/*", "/note/*",
+                "/search/note", "/comment/note/*", "/file/content/**").permitAll()
             .antMatchers("/doc.html", "/webjars/**", "/swagger-resources/**",
                         "/v2/api-docs", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**",
                         "/favicon.ico", "/**/*.js", "/**/*.css",
